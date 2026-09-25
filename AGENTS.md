@@ -5,7 +5,7 @@
   - 일정/D-day: [kagemori-schedule](.agents/skills/kagemori-schedule/SKILL.md) (한국 시간 기준)
   - 풀스택: [cloudflare-workers-vite](.agents/skills/cloudflare-workers-vite/SKILL.md) (로컬 빌드·인증 확인)
   - 아키텍처/테스트: [clean-architecture-ts](.agents/skills/clean-architecture-ts/SKILL.md), [layered-testing](.agents/skills/layered-testing/SKILL.md)
-  - 교재/D1: [investment-manager-catalog](.agents/skills/investment-manager-catalog/SKILL.md) (1단계 완료, 2단계 확장 시 사전확인)
+  - 교재/RAG: [investment-manager-catalog](.agents/skills/investment-manager-catalog/SKILL.md), [rag-adaptive-study](.agents/skills/rag-adaptive-study/SKILL.md)
 - 스킬은 `.agents/skills`에 단일 책임·선별 발동 모듈로 작성한다.
 - 패키지 매니저는 `pnpm`을 사용한다.
 - 요구사항 변경 시 ADR을 선행 갱신하고 코드와 문서를 일치시킨다.

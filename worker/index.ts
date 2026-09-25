@@ -4,6 +4,7 @@ import { D1CatalogRepository } from '../src/infra/d1/D1CatalogRepository.ts'
 
 export type Env = {
   DB?: D1Database
+  GEMINI_API_KEY?: string
 }
 
 const app = new Hono<{ Bindings: Env }>()
