@@ -1,6 +1,12 @@
+// worker/index.ts
 import { Hono } from 'hono'
+import { D1CatalogRepository } from '../src/infra/d1/D1CatalogRepository.ts'
 
-const app = new Hono()
+export type Env = {
+  DB?: D1Database
+}
+
+const app = new Hono<{ Bindings: Env }>()
 
 export interface ScheduleItem {
   id: string
@@ -34,8 +40,41 @@ const SCHEDULE_DATA: ScheduleResponse = {
   ],
 }
 
+// 스케줄 API
 app.get('/api/schedule', (c) => {
   return c.json(SCHEDULE_DATA)
+})
+
+// 카탈로그 개요 API
+app.get('/api/catalog/overview', async (c) => {
+  const repo = new D1CatalogRepository(c.env?.DB)
+  const overview = await repo.getOverview()
+  return c.json(overview)
+})
+
+// 교재 목록 API (1~5권)
+app.get('/api/catalog/books', async (c) => {
+  const repo = new D1CatalogRepository(c.env?.DB)
+  const books = await repo.getBooks()
+  return c.json(books)
+})
+
+// 개별 교재 상세 API (PART 및 Chapter 포함)
+app.get('/api/catalog/books/:id', async (c) => {
+  const id = c.req.param('id')
+  const repo = new D1CatalogRepository(c.env?.DB)
+  const book = await repo.getBookById(id)
+  if (!book) {
+    return c.json({ error: 'Book not found' }, 404)
+  }
+  return c.json(book)
+})
+
+// 출제기준 및 과목별 배분 API
+app.get('/api/catalog/blueprint', async (c) => {
+  const repo = new D1CatalogRepository(c.env?.DB)
+  const blueprint = await repo.getExamBlueprint()
+  return c.json(blueprint)
 })
 
 export default app

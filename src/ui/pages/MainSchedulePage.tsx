@@ -2,6 +2,7 @@ import { useScheduleDDay } from '../hooks/useScheduleDDay.ts'
 import { Header } from '../components/Header.tsx'
 import { CounterCard } from '../components/CounterCard.tsx'
 import { NoticeSection } from '../components/NoticeSection.tsx'
+import { DICTIONARY } from '../constants/dictionary.ts'
 
 export function MainSchedulePage() {
   const { data, isLoading, error } = useScheduleDDay()
@@ -10,7 +11,7 @@ export function MainSchedulePage() {
     <div className="space-y-8">
       {/* Header */}
       <Header
-        title={data ? data.title : '제47회 투자자산운용사'}
+        title={data ? data.title : DICTIONARY.schedule.defaultTitle}
         todayFormatted={data ? data.todayFormatted : ''}
         todayStr={data ? data.todayStr : ''}
       />
@@ -19,12 +20,12 @@ export function MainSchedulePage() {
       {isLoading && !data && (
         <div className="flex justify-center items-center py-2 text-xs text-base-content/60">
           <span className="loading loading-spinner loading-xs mr-2"></span>
-          최신 일정을 동기화하는 중입니다...
+          {DICTIONARY.schedule.syncing}
         </div>
       )}
       {error && (
         <div className="alert alert-warning text-sm shadow-sm">
-          <span>서버 연동 알림: 기본 일정을 표시 중입니다. ({error})</span>
+          <span>{DICTIONARY.schedule.fallbackAlertPrefix} ({error})</span>
         </div>
       )}
 

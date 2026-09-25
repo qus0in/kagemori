@@ -1,18 +1,18 @@
 {
   "name": "kagemori",
-  "version": "0.3.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "NODE_OPTIONS='--disable-warning=DEP0040' vite",
+    "build": "NODE_OPTIONS='--disable-warning=DEP0040' vite build",
+    "preview": "NODE_OPTIONS='--disable-warning=DEP0040' vite preview",
     "deploy": "pnpm build && wrangler deploy",
     "check": "tsc -b",
-    "test": "node --test --experimental-strip-types 'test/**/*.test.ts'",
-    "test:unit": "node --test --experimental-strip-types 'test/unit/**/*.test.ts'",
-    "test:slice": "node --test --experimental-strip-types 'test/slice/**/*.test.ts'",
-    "test:integration": "node --test --experimental-strip-types 'test/integration/**/*.test.ts'"
+    "test": "NODE_OPTIONS='--disable-warning=DEP0040' node --test --experimental-strip-types 'test/**/*.test.ts'",
+    "test:unit": "NODE_OPTIONS='--disable-warning=DEP0040' node --test --experimental-strip-types 'test/unit/**/*.test.ts'",
+    "test:slice": "NODE_OPTIONS='--disable-warning=DEP0040' node --test --experimental-strip-types 'test/slice/**/*.test.ts'",
+    "test:integration": "NODE_OPTIONS='--disable-warning=DEP0040' node --test --experimental-strip-types 'test/integration/**/*.test.ts'"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.2",

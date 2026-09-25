@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 @plugin "daisyui/theme" {
   name: "kagemori";
   default: true;

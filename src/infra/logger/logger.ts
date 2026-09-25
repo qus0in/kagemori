@@ -1,7 +1,7 @@
 import pino from 'pino'
 
 const isNode =
-  typeof window === 'undefined' &&
+  typeof (globalThis as { window?: unknown }).window === 'undefined' &&
   typeof globalThis !== 'undefined' &&
   Boolean((globalThis as unknown as { process?: { versions?: { node?: string } } }).process?.versions?.node)
 
