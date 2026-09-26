@@ -57,7 +57,8 @@ export function StudyCoverageMap({ blueprint, results }: {
                   aria-pressed={selectedId === topic.id} aria-label={`${topic.title}: ${statusLabels[topic.status]}`}
                   className={`min-h-20 rounded-lg border p-3 text-left text-xs flex flex-col justify-between gap-3
                     motion-safe:transition-colors hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2
-                    focus-visible:outline-primary ${tileStyles[topic.status]}`}>
+                    focus-visible:outline-primary ${tileStyles[topic.status]}
+                    ${selectedId === topic.id ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : ''}`}>
                   <span className="font-semibold leading-relaxed">{topic.title}</span>
                   <span className="text-[11px] opacity-80">
                     {topic.status === 'filled' ? '✓ ' : topic.status === 'review' ? '↻ ' : '○ '}{statusLabels[topic.status]}

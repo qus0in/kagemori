@@ -18,3 +18,4 @@ description: Implement and maintain RAG concept explanation, adaptive multiple-c
   - 프로덕션: Cloudflare Vectorize (에지 네이티브)
   - 로컬/테스트: `@orama/orama` 인메모리/임베디드 어댑터 사용
 - **데이터 무결성**: D1을 개념 원문·문제은행·풀이 이력의 단일 진실 공급원(SSOT)으로 유지한다.
+- **학습 지도**: ADR 0005의 진도는 세부과목별 힌트 없는 정답 확인 비율이다. 서버 채점 성공 후 문항별 최신 결과를 브라우저에 보조 저장하며 세션 초기화로 지우지 않는다. 오답·힌트 후 정답은 복습 대상으로 구분하고 숙달률·합격 확률로 표현하지 않는다.

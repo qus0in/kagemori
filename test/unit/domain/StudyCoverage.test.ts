@@ -1,17 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { summarizeCoverage, type CoverageResult } from '../../../src/domain/models/StudyCoverage.ts'
-import type { ExamBlueprint } from '../../../src/domain/models/CatalogTypes.ts'
-
-export const blueprint: ExamBlueprint = {
-  id: 'bp', examCode: 'test', effectiveFrom: '2026', verificationStatus: 'PROVISIONAL',
-  subjects: [{
-    id: 's1', blueprintId: 'bp', title: '과목', ordinal: 1, questionCount: 20, minimumCorrect: 8,
-    topics: ['세제', '금융상품', '부동산'].map((title, index) => ({
-      id: `t${index}`, subjectId: 's1', title, ordinal: index + 1, questionCount: 1,
-    })),
-  }],
-}
+import { coverageBlueprint as blueprint } from '../../helpers/coverageFixture.ts'
 const answer = (questionId: string, topicId: string, isCorrect = true, hintUsed = false): CoverageResult =>
   ({ questionId, topicId, isCorrect, hintUsed })
 

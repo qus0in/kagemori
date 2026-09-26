@@ -27,7 +27,7 @@ export function StudyPage() {
         <StudyModeSelector onStartSession={store.startSession} />
       )}
 
-      <StudyCoveragePanel />
+      {!store.session && <StudyCoveragePanel />}
 
       {store.session && !store.isCompleted && (
         <StudyActiveSection store={store} />
@@ -40,6 +40,8 @@ export function StudyPage() {
           onReset={store.resetSession}
         />
       )}
+
+      {store.session && <StudyCoveragePanel compact={!store.isCompleted} />}
     </div>
   )
 }
