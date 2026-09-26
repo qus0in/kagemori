@@ -77,14 +77,29 @@ describe('[Unit / Infra] Feature: DurableObjectSessionRepository with DO & KV', 
       assert.ok(doStore.has('sess-1790418808436-improvement-5-abcde'))
       assert.equal(doStore.get('sess-1790418808436-improvement-5-abcde')?.targetQuestionCount, 5)
 
-      // Then: KV contains session metadata
+      // Then: KV contains session metadata and state
       assert.ok(kvStore.has('session:sess-1790418808436-improvement-5-abcde'))
+      assert.ok(kvStore.has('session_state:sess-1790418808436-improvement-5-abcde'))
 
       // When queried
       const loaded = await repo.findById('sess-1790418808436-improvement-5-abcde')
       assert.ok(loaded)
       assert.equal(loaded.sessionId, 'sess-1790418808436-improvement-5-abcde')
       assert.equal(loaded.purpose, 'IMPROVEMENT')
+    })
+
+    it('Given DO unavailable but KV populated, When findById is called, Then recovers session from KV', async () => {
+      const { kv, store: kvStore } = createMockKv()
+      const repo = new DurableObjectSessionRepository(undefined, kv)
+      kvStore.set('session_state:sess-from-kv', JSON.stringify({
+        sessionId: 'sess-from-kv', learnerId: 'guest', purpose: 'DIAGNOSTIC', blueprintId: 'bp',
+        targetQuestionCount: 6, currentQuestionIndex: 2, isCompleted: false,
+        attempts: [{ questionId: 'q1', optionId: 'o1', isCorrect: true, hintUsed: false, durationMs: 1000 }],
+      }))
+      const recovered = await repo.findById('sess-from-kv')
+      assert.ok(recovered)
+      assert.equal(recovered.attempts.length, 1)
+      assert.equal(recovered.currentQuestionIndex, 2)
     })
   })
 

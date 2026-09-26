@@ -19,7 +19,13 @@ export async function executeNextQuestion(
       set({ currentQuestion: null, isCompleted: true, isLoadingQuestion: false })
       return
     }
-    set({ currentQuestion: nextQ, questionStartTime: Date.now(), isLoadingQuestion: false })
+    const nextIndex = nextQ.currentQuestionIndex ?? session.currentQuestionIndex + 1
+    set({
+      currentQuestion: nextQ,
+      session: { ...session, currentQuestionIndex: nextIndex },
+      questionStartTime: Date.now(),
+      isLoadingQuestion: false,
+    })
   } catch (err) {
     const msg = err instanceof Error ? err.message : '다음 문제를 불러오지 못했습니다.'
     set({ error: msg, isLoadingQuestion: false })

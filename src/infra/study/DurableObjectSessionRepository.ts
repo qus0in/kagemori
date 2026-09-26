@@ -28,43 +28,15 @@ export class DurableObjectSessionRepository implements PracticeSessionRepository
   }
 
   async findById(id: string): Promise<PracticeSession | null> {
-    if (!this.doNamespace) {
-      return this.fallbackRepo.findById(id)
+    const props = (await this.fetchFromDo(id)) ?? (await this.kvCache.getSessionState(id))
+    if (props && props.sessionId) {
+      return new PracticeSession(props)
     }
-
-    try {
-      const doId = this.doNamespace.idFromName(id)
-      const stub = this.doNamespace.get(doId)
-
-      let props: PracticeSessionProps | null = null
-      if (typeof stub.getSession === 'function') {
-        props = await stub.getSession()
-      } else {
-        const res = await stub.fetch(new Request('http://do/session'))
-        if (res.ok) {
-          props = (await res.json()) as PracticeSessionProps
-        }
-      }
-
-      if (props) {
-        return new PracticeSession(props)
-      }
-
-      // If not yet persisted in DO, check KV or fallback for auto-healing
-      const fallback = await this.fallbackRepo.findById(id)
-      if (fallback) {
-        await this.save(fallback)
-        return fallback
-      }
-      return null
-    } catch {
-      return this.fallbackRepo.findById(id)
-    }
+    return this.fallbackRepo.findById(id)
   }
 
   async save(session: PracticeSession): Promise<void> {
     await this.fallbackRepo.save(session)
-
     const props: PracticeSessionProps = {
       sessionId: session.sessionId,
       learnerId: session.learnerId,
@@ -76,31 +48,50 @@ export class DurableObjectSessionRepository implements PracticeSessionRepository
       isCompleted: session.isCompleted,
     }
 
+    await this.kvCache.saveSessionState(props)
     await this.kvCache.saveSessionMeta({
       sessionId: session.sessionId,
       purpose: session.purpose,
       targetCount: session.targetQuestionCount,
       createdAt: Date.now(),
     })
+    await this.saveToDo(props)
+  }
 
-    if (!this.doNamespace) return
-
+  private async fetchFromDo(id: string): Promise<PracticeSessionProps | null> {
+    if (!this.doNamespace) return null
     try {
-      const doId = this.doNamespace.idFromName(session.sessionId)
-      const stub = this.doNamespace.get(doId)
-      if (typeof stub.saveSession === 'function') {
-        await stub.saveSession(props)
-      } else {
-        await stub.fetch(
-          new Request('http://do/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(props),
-          })
-        )
+      const stub = this.doNamespace.get(this.doNamespace.idFromName(id))
+      if (typeof stub.getSession === 'function') {
+        try {
+          const res = await stub.getSession()
+          if (res) return res
+        } catch { /* fallback to fetch */ }
       }
+      const res = await stub.fetch(new Request('http://do/session'))
+      return res.ok ? ((await res.json()) as PracticeSessionProps) : null
     } catch {
-      // In case of DO network glitch, fallbackRepo preserves state in-isolate
+      return null
     }
+  }
+
+  private async saveToDo(props: PracticeSessionProps): Promise<void> {
+    if (!this.doNamespace) return
+    try {
+      const stub = this.doNamespace.get(this.doNamespace.idFromName(props.sessionId))
+      if (typeof stub.saveSession === 'function') {
+        try {
+          await stub.saveSession(props)
+          return
+        } catch { /* fallback to fetch */ }
+      }
+      await stub.fetch(
+        new Request('http://do/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(props),
+        })
+      )
+    } catch { /* graceful fallback */ }
   }
 }

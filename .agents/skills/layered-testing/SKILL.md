@@ -42,3 +42,8 @@ describe('[Level / Layer] Feature: ComponentName', () => {
 - Domain Unit tests: `pnpm test:unit`
 - Slice tests: `pnpm test:slice`
 - Integration tests: `pnpm test:integration`
+
+## Markdown UI Regression
+
+- For TSX rendering in Node tests, import `test/helpers/registerTsx.ts` before dynamically importing components, then use React's `renderToStaticMarkup`.
+- Exercise the actual `MarkdownView`: Korean particles adjoining quoted/parenthesized emphasis, nested emphasis, code, escapes, links, and raw HTML safety. Assert semantic HTML and unchanged visible text.

@@ -4,6 +4,7 @@ import { StudyPageHeader } from '../components/study/StudyPageHeader.tsx'
 import { StudyModeSelector } from '../components/study/StudyModeSelector.tsx'
 import { StudyActiveSection } from '../components/study/StudyActiveSection.tsx'
 import { StudyCompleteView } from '../components/study/StudyCompleteView.tsx'
+import { StudyCoveragePanel } from '../components/study/StudyCoveragePanel.tsx'
 
 export function StudyPage() {
   const store = useStudySession()
@@ -25,6 +26,8 @@ export function StudyPage() {
       {!store.session && (
         <StudyModeSelector onStartSession={store.startSession} />
       )}
+
+      <StudyCoveragePanel />
 
       {store.session && !store.isCompleted && (
         <StudyActiveSection store={store} />

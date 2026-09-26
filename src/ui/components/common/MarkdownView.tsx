@@ -1,5 +1,6 @@
 // src/ui/components/common/MarkdownView.tsx
 import Markdown from 'react-markdown'
+import remarkCjkFriendly from 'remark-cjk-friendly'
 import { sanitizeMarkdown } from './markdownHelper.ts'
 
 export interface MarkdownViewProps {
@@ -20,12 +21,12 @@ export function MarkdownView({ content = '', className = '' }: MarkdownViewProps
         [&>ol]:my-1.5 [&>ol]:ps-5 [&>ol]:list-decimal
         [&>li]:my-0.5 [&>li]:text-xs sm:[&>li]:text-sm
         [&>p]:my-1.5 [&>p]:text-xs sm:[&>p]:text-sm
-        [&>strong]:font-bold [&>strong]:text-base-content
+        [&_strong]:font-bold [&_strong]:text-base-content
         [&>hr]:my-2.5 [&>hr]:border-base-300
         [&_code]:bg-base-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
         ${className}`}
     >
-      <Markdown>{content}</Markdown>
+      <Markdown remarkPlugins={[remarkCjkFriendly]}>{sanitized}</Markdown>
     </div>
   )
 }
