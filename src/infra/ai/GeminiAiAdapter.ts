@@ -4,6 +4,7 @@ import type {
   GenerateExplanationParams,
 } from '../../domain/ports/AiExplanationPort.ts'
 import { callGemini } from './GeminiApiClient.ts'
+import { aiCacheKey, type AiResponseCache } from './KvAiResponseCache.ts'
 import {
   buildHintPrompt,
   buildExplanationPrompt,
@@ -19,6 +20,7 @@ export interface GeminiAiAdapterOptions {
   hintModel?: string
   explanationModel?: string
   fetchFn?: typeof fetch
+  cache?: AiResponseCache
 }
 
 export class GeminiAiAdapter implements AiExplanationPort {
@@ -26,12 +28,14 @@ export class GeminiAiAdapter implements AiExplanationPort {
   private readonly hintModel: string
   private readonly explanationModel: string
   private readonly fetch: typeof fetch
+  private readonly cache?: AiResponseCache
 
   constructor(options: GeminiAiAdapterOptions = {}) {
     this.apiKey = options.apiKey
     this.hintModel = options.hintModel || DEF_HINT_MODEL
     this.explanationModel = options.explanationModel || DEF_EXPLANATION_MODEL
     this.fetch = options.fetchFn || globalThis.fetch
+    this.cache = options.cache
   }
 
   private async executePrompt(
@@ -42,9 +46,14 @@ export class GeminiAiAdapter implements AiExplanationPort {
   ): Promise<string> {
     if (!this.apiKey) return fallback
     try {
+      const key = this.cache ? await aiCacheKey(model, tokens, prompt) : ''
+      const cached = this.cache ? await this.cache.get(key) : null
+      if (cached) return cached
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`
       const res = await callGemini(this.fetch, url, prompt, tokens)
-      return res || fallback
+      if (!res) return fallback
+      if (this.cache) await this.cache.put(key, res)
+      return res
     } catch {
       return fallback
     }

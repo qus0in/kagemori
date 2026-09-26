@@ -10,6 +10,7 @@ import {
 } from '../src/infra/study/DurableObjectSessionRepository.ts'
 import type { CloudflareKvBinding } from '../src/infra/study/KvSessionCache.ts'
 import { GeminiAiAdapter } from '../src/infra/ai/GeminiAiAdapter.ts'
+import { KvAiResponseCache } from '../src/infra/ai/KvAiResponseCache.ts'
 import { StorageUnavailableError } from '../src/domain/models/StorageErrors.ts'
 
 export type Env = {
@@ -50,5 +51,6 @@ export function getAiAdapter(env?: Env): AiExplanationPort {
   if (env?.AI_ADAPTER) {
     return env.AI_ADAPTER
   }
-  return new GeminiAiAdapter({ apiKey: env?.GEMINI_API_KEY })
+  const cache = env?.KAGEMORI_KV ? new KvAiResponseCache(env.KAGEMORI_KV) : undefined
+  return new GeminiAiAdapter({ apiKey: env?.GEMINI_API_KEY, cache })
 }
