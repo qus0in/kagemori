@@ -30,6 +30,7 @@ export class PracticeSession {
   public get blueprintId(): string { return this._state.blueprintId }
   public get targetQuestionCount(): number { return this._state.targetCount }
   public get currentQuestionIndex(): number { return this._state.currentIndex }
+  public get questionIds(): readonly string[] | undefined { return this._state.questionIds }
   public get attempts(): readonly Attempt[] { return Object.freeze([...this._state.attempts]) }
   public get isCompleted(): boolean { return this._state.isCompleted }
   public get correctCount(): number { return countCorrect(this._state.attempts) }

@@ -1,6 +1,9 @@
 // src/ui/components/common/MarkdownView.tsx
 import Markdown from 'react-markdown'
 import remarkCjkFriendly from 'remark-cjk-friendly'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 import { sanitizeMarkdown } from './markdownHelper.ts'
 
 export interface MarkdownViewProps {
@@ -24,9 +27,16 @@ export function MarkdownView({ content = '', className = '' }: MarkdownViewProps
         [&_strong]:font-bold [&_strong]:text-base-content
         [&>hr]:my-2.5 [&>hr]:border-base-300
         [&_code]:bg-base-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
+        [&_table]:w-full [&_table]:border-collapse [&_table]:text-xs [&_table]:my-2
+        [&_th]:border [&_th]:border-base-300 [&_th]:bg-base-200 [&_th]:px-2 [&_th]:py-1 [&_th]:whitespace-nowrap
+        [&_td]:border [&_td]:border-base-300 [&_td]:px-2 [&_td]:py-1 [&_td]:align-top
+        [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
         ${className}`}
     >
-      <Markdown remarkPlugins={[remarkCjkFriendly]}>{sanitized}</Markdown>
+      <Markdown remarkPlugins={[remarkCjkFriendly, remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}
+        components={{ table: ({ node: _node, ...props }) => <div className="overflow-x-auto"><table {...props} /></div> }}>
+        {sanitized}
+      </Markdown>
     </div>
   )
 }

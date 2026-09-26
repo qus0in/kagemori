@@ -19,9 +19,9 @@ export class HttpStudyRepository implements HttpStudyRepositoryContract {
     this.http = http
   }
 
-  private async post<T>(p: string, json: unknown, op: string): Promise<T> {
+  private async post<T>(p: string, json: unknown, op: string, timeout = 10000): Promise<T> {
     try {
-      return await this.http.post(`${this.url}${p}`, { json, timeout: 10000 }).json<T>()
+      return await this.http.post(`${this.url}${p}`, { json, timeout }).json<T>()
     } catch (err) {
       this.log.error({ err, op }, `Failed to ${op}`)
       throw err
@@ -29,7 +29,8 @@ export class HttpStudyRepository implements HttpStudyRepositoryContract {
   }
 
   public createSession(purpose: SessionPurpose, targetCount?: number): Promise<SessionCreationResult> {
-    return this.post('/session', { purpose, targetCount }, 'create session')
+    // AI drafting + review may run when the question bank is short.
+    return this.post('/session', { purpose, targetCount }, 'create session', 200000)
   }
 
   public async getNextQuestion(sessionId: string): Promise<PublicQuestionDto | null> {

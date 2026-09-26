@@ -7,4 +7,8 @@ export function validatePracticeSessionProps(p: PracticeSessionProps): void {
   if (p.targetQuestionCount <= 0) {
     throw new Error('targetQuestionCount must be greater than zero.')
   }
+  if (p.questionIds && (p.questionIds.length !== p.targetQuestionCount ||
+    new Set(p.questionIds).size !== p.questionIds.length || p.questionIds.some((id) => !id?.trim()))) {
+    throw new Error('questionIds must list each planned question once.')
+  }
 }

@@ -61,6 +61,7 @@ export function buildExplanationPrompt(
 
   return `당신은 투자자산운용사 자격시험의 전문 강사입니다.
 수험생이 문제를 푼 직후 읽는 해설이므로, 질문 복사나 사족 없이 실질적인 수험 핵심 근거만 군더더기 없이 마크다운으로 작성하세요.
+수식·기호는 $\\beta$처럼 LaTeX를 $...$로 감싸고 블록 수식은 $$를 별도 줄에 두며, 표는 각 행을 줄바꿈한 GFM 표로 작성하세요.
 
 [정답 여부]: ${p.isCorrect ? '정답' : '오답'}
 [응시자 선택지]: "${p.selectedOptionText}"${correctLine}${optionsCtx}

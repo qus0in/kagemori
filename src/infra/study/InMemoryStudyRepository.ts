@@ -6,6 +6,9 @@ import { InMemoryConceptRepository } from './InMemoryConceptRepository.ts'
 import { InMemorySessionRepository } from './InMemorySessionRepository.ts'
 import { InMemorySourceRepository } from './InMemorySourceRepository.ts'
 import type { PracticeSessionRepository } from '../../domain/ports/PracticeSessionRepository.ts'
+import { DEFAULT_SESSION_QUESTION_COUNTS } from '../../domain/models/PracticeSessionTypes.ts'
+import type { GeneratedQuestionStore } from '../../domain/ports/QuestionBankPorts.ts'
+import { InMemoryGeneratedQuestionStore } from './InMemoryGeneratedQuestionStore.ts'
 
 export {
   InMemoryQuestionRepository,
@@ -20,20 +23,15 @@ export class InMemoryStudyRepository implements StudyRepository {
   public readonly sessions: PracticeSessionRepository
   public readonly sources: InMemorySourceRepository
 
-  constructor(sessions?: PracticeSessionRepository) {
-    this.questions = new InMemoryQuestionRepository()
-    this.concepts = new InMemoryConceptRepository()
+  constructor(sessions?: PracticeSessionRepository, generated: GeneratedQuestionStore = new InMemoryGeneratedQuestionStore()) {
+    this.questions = new InMemoryQuestionRepository(undefined, generated)
+    this.concepts = new InMemoryConceptRepository(undefined, generated)
     this.sessions = sessions ?? new InMemorySessionRepository()
     this.sources = new InMemorySourceRepository()
   }
 
-  async createSession(purpose: SessionPurpose, targetCount?: number): Promise<PracticeSession> {
-    const defaultCounts: Record<SessionPurpose, number> = {
-      DIAGNOSTIC: 6,
-      IMPROVEMENT: 6,
-      MOCK_EXAM: 10,
-    }
-    const count = targetCount && targetCount > 0 ? targetCount : defaultCounts[purpose]
+  async createSession(purpose: SessionPurpose, targetCount?: number, questionIds?: readonly string[]): Promise<PracticeSession> {
+    const count = questionIds?.length || (targetCount && targetCount > 0 ? targetCount : DEFAULT_SESSION_QUESTION_COUNTS[purpose])
     const sessionId = `sess-${Date.now()}-${purpose.toLowerCase()}-${count}-${Math.random().toString(36).substring(2, 7)}`
 
     const session = new PracticeSession({
@@ -42,6 +40,7 @@ export class InMemoryStudyRepository implements StudyRepository {
       purpose,
       blueprintId: 'blueprint-round-47',
       targetQuestionCount: count,
+      ...(questionIds?.length ? { questionIds } : {}),
     })
 
     await this.sessions.save(session)

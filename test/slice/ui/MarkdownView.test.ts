@@ -64,3 +64,22 @@ describe('[Slice / UI] Feature: MarkdownView Korean emphasis', () => {
     })
   })
 })
+
+describe('[Slice / UI] Feature: MarkdownView tables and math', () => {
+  describe('Scenario: AI explanations include GFM tables and LaTeX', () => {
+    it('Given a GFM table, When rendered, Then emits a scrollable table with header and cells', () => {
+      const html = render('| 구분 | 체계적 위험 |\n| :--- | :--- |\n| CAPM 보상 | 베타 **$\\beta$** |')
+      assert.ok(html.includes('<div class="overflow-x-auto"><table>'))
+      assert.ok(html.includes('<th style="text-align:left">구분</th>'))
+      assert.ok(html.includes('<td style="text-align:left">CAPM 보상</td>'))
+      assert.ok(!html.includes('| :--- |'))
+    })
+    it('Given inline and display math, When rendered, Then KaTeX replaces raw LaTeX', () => {
+      const html = render('시장위험 $\\beta$만 보상\n\n$$\nE(R_i) = R_f + \\beta_i [E(R_m) - R_f]\n$$')
+      assert.ok(html.includes('class="katex"'))
+      assert.ok(html.includes('class="katex-display"'))
+      assert.ok(html.includes('β'))
+      assert.ok(!html.includes('$\\beta$'))
+    })
+  })
+})

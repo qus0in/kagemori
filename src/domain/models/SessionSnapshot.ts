@@ -7,6 +7,7 @@ export function sessionSnapshot(session: PracticeSession): PracticeSessionProps 
     blueprintId: session.blueprintId, targetQuestionCount: session.targetQuestionCount,
     currentQuestionIndex: session.currentQuestionIndex, isCompleted: session.isCompleted,
     attempts: [...session.attempts],
+    ...(session.questionIds ? { questionIds: [...session.questionIds] } : {}),
   }
 }
 export function cloneSession(session: PracticeSession): PracticeSession {

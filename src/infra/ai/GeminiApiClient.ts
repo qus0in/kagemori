@@ -1,18 +1,31 @@
 // src/infra/ai/GeminiApiClient.ts
 
+export interface GeminiCallOptions {
+  /** Ask for a JSON response body (responseMimeType). */
+  readonly json?: boolean
+  readonly temperature?: number
+  readonly timeoutMs?: number
+}
+
 export async function callGemini(
   fetchFn: typeof fetch,
   url: string,
   promptText: string,
-  maxTokens: number
+  maxTokens: number,
+  options: GeminiCallOptions = {},
 ): Promise<string | null> {
   const response = await fetchFn(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: promptText }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens },
+      generationConfig: {
+        temperature: options.temperature ?? 0.2,
+        maxOutputTokens: maxTokens,
+        ...(options.json ? { responseMimeType: 'application/json' } : {}),
+      },
     }),
+    ...(options.timeoutMs ? { signal: AbortSignal.timeout(options.timeoutMs) } : {}),
   })
 
   if (!response.ok) return null

@@ -3,6 +3,12 @@ import type { Attempt } from './Attempt.ts'
 
 export type SessionPurpose = 'DIAGNOSTIC' | 'IMPROVEMENT' | 'MOCK_EXAM'
 
+export const DEFAULT_SESSION_QUESTION_COUNTS: Readonly<Record<SessionPurpose, number>> = {
+  DIAGNOSTIC: 6,
+  IMPROVEMENT: 6,
+  MOCK_EXAM: 10,
+}
+
 export interface PracticeSessionProps {
   readonly sessionId: string
   readonly learnerId: string
@@ -10,6 +16,8 @@ export interface PracticeSessionProps {
   readonly blueprintId: string
   readonly currentQuestionIndex?: number
   readonly targetQuestionCount: number
+  /** Question order fixed at creation; absent for legacy sessions. */
+  readonly questionIds?: readonly string[]
   readonly attempts?: readonly Attempt[]
   readonly isCompleted?: boolean
 }

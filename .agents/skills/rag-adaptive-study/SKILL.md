@@ -7,8 +7,10 @@ description: Implement and maintain RAG concept explanation, adaptive multiple-c
 
 - 작업 전 [ADR 0003](../../../docs/adr/0003-adaptive-question-rag-study.md) 및 [학습 설계](../../../docs/plans/rag-question-study-design.md)를 필독한다.
 - **학습 인터랙션 원칙**: 화면과 API는 1회 1문항 원칙을 고수하며, 제출 전 정답을 클라이언트에 노출하지 않는다.
-- **조회 실패 복구**: 다음 문제를 받기 전 해설·선택을 지우지 않는다. 첫 조회 실패도 같은 세션에서 재시도하며, 중복 요청과 초기화 후 늦은 응답을 차단한다. `/next` GET의 제한된 재시도 정책을 제출 POST에 적용하지 않는다.
-- **모델 파이프라인**:
+- **조회 실패 복구**: 다음 문제를 받기 전 해설·선택을 지우지 않는다. 첫 조회 실패도 같은 세션에서 재시도하며, 중복 요청과 초기화 후 늦은 응답을 차단한다. `/next` GET의 제한된 재시도 정책을 제출 POST에 적용하지 않는다. 다음 문제 조회 중에는 카드를 반투명·`inert`로 고정하고 스피너를 겹친다.
+- **모델 사용 현황(코드 기준)**: 힌트 `gemini-3.5-flash-lite`(`GeminiAiAdapter`), 제출 해설 `gemini-3.8-flash`(`GeminiAiAdapter`), 부족 문항 출제·블라인드 검수 `gemini-3.8-flash`(`GeminiQuestionAuthor`, 호출 2회). 임베딩·Gemma·이미지 모델은 계획 단계이며 호출 코드가 없다(시드 임베딩은 결정적 가짜 벡터).
+- **출제 계획**: 세션 생성 시 `CreateStudySessionUseCase`가 D1 최신 결과로 `미풀이 → 오답·힌트 → 정답(오래된 순)` 목록을 확정해 DO에 저장한다. 미풀이가 모자라면 `ReplenishQuestionBankUseCase`가 주제 배정 → 출제 → 정답을 가린 검수 → 독립 풀이 일치 문항만 D1 `generated_questions`에 저장한다. 시험 점검에는 섞지 않는다(ADR 0003).
+- **모델 파이프라인(계획)**:
   - 임베딩: `Gemini Embedding 2` (768차원, Cosine)
   - 서브 병렬/전처리: `gemma-4-26b-a4b-it` (MoE 전처리·태깅), `gemma-4-31b-it` (Dense 초안 검수)
   - 실시간 서빙: `gemini-3.5-flash-lite` (초저지연 힌트·해설 서빙)

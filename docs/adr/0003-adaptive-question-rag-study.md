@@ -1,6 +1,6 @@
 # ADR 0003: 근거 기반 RAG와 목적별 객관식 학습
 
-- 상태: 설계 채택, 구현 전 검증 대기
+- 상태: 설계 채택, 이력 기반 출제·AI 출제·검수 구현 (2026-09-27)
 - 작성일: 2026-09-25 (Asia/Seoul)
 - 선행 결정: [ADR 0001](0001-investment-manager-dday.md), [ADR 0002](0002-textbook-catalog-and-exam-blueprint.md)
 - 상세 설계: [RAG·문제 학습 설계](../plans/rag-question-study-design.md)
@@ -32,3 +32,10 @@
 - [금융투자협회 자격시험센터](https://license.kofia.or.kr/examInfo/examInfo.do?licenseCd=FWM006)
 - [Gemini 임베딩 모델](https://ai.google.dev/gemini-api/docs/embeddings)
 - [Cloudflare Vectorize 제한](https://developers.cloudflare.com/vectorize/platform/limits/)
+
+## 이력 기반 출제와 부족 문항 자동 출제·검수 (2026-09-27)
+
+- 세션 생성 시 출제 목록을 확정해 DO 세션에 저장한다. D1 문항별 최신 결과로 `미풀이 → 오답·힌트 사용 → 정답(오래된 순)` 순서로 고르며, 목록은 세션 도중 바뀌지 않는다. 목록이 없는 기존 세션은 종전 방식을 유지한다. 이력 조회 실패는 로그를 남기고 이력 없이 계획한다.
+- 실력 체크·실력 향상에서 미풀이 문항이 목표보다 적으면 부족분만큼 `gemini-3.8-flash`로 출제한다. 주제는 세부과목 배분이 크고 가용 문항이 적으며 오답률이 높은 순으로 배정하고, 매핑된 교재 장 제목·검증된 개념·기존 문항을 근거와 중복 방지 자료로 제공한다.
+- 같은 모델의 별도 호출로 검수한다. 검수자는 정답·해설을 가린 문항을 먼저 풀고, 단일 정답·선지 사실성·주제 적합성·중복을 판정한다. 해설은 저장 시 형식만 검사하고, 제출 시 정답과 근거 요약으로 해설을 다시 생성한다. 승인되고 독립 풀이가 출제 정답과 일치한 문항만 `REVIEWED` 상태로 D1 `generated_questions`에 저장한다. 실패·할당량 초과 시 기존 문항 반복으로 대체한다.
+- AI 출제 문항은 화면에 표시하며 개념 근거 요약을 힌트·해설 근거로 사용한다. 시험 통과 점검에는 섞지 않는다. 사람 검수 전이므로 공식 문항과 동일한 신뢰도로 표시하지 않는다.

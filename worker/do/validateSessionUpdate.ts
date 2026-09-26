@@ -18,6 +18,8 @@ export function validateSessionUpdate(next: PracticeSessionProps, previous?: Pra
     for (const key of ['sessionId', 'learnerId', 'purpose', 'blueprintId', 'targetQuestionCount'] as const) {
       if (next[key] !== previous[key]) return false
     }
+    if (JSON.stringify(next.questionIds ?? null) !== JSON.stringify(previous.questionIds ?? null)) return false
+    if (next.questionIds && attempts.some((a, index) => a.questionId !== next.questionIds?.[index])) return false
     return (previous.attempts ?? []).every((attempt, index) => JSON.stringify(attempt) === JSON.stringify(attempts[index]))
   } catch { return false }
 }

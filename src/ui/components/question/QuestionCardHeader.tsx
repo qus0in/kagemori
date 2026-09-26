@@ -16,6 +16,11 @@ export function QuestionCardHeader({ question, questionNumber, totalQuestions }:
         <span className="badge badge-outline text-xs text-base-content/80">
           {question.topicId}
         </span>
+        {question.isAiGenerated && (
+          <span className="badge badge-accent badge-outline text-xs" title="AI가 출제하고 별도 AI 검수를 통과한 문항이에요">
+            AI 출제·검수
+          </span>
+        )}
         {question.type && (
           <span className="badge badge-ghost text-xs">
             {question.type}

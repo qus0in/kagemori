@@ -53,7 +53,7 @@ export const studyDict = {
     accuracyLabel: '정답률',
     restartButton: '새 학습 시작',
     modeLabel: '학습 모드',
-    loadingSession: '학습 문제를 불러오는 중입니다...',
+    loadingSession: '학습 문제를 준비하는 중입니다. 새 문항이 필요하면 AI 출제·검수로 최대 1~2분 걸릴 수 있어요.',
     errorLoading: '문제를 불러오는 중 오류가 발생했습니다.',
     emptySession: '세션에 남은 문제가 없습니다.',
   },

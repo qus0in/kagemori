@@ -1,11 +1,13 @@
 import type { D1Database } from '@cloudflare/workers-types'
 import type { PracticeSessionProps } from '../../domain/models/PracticeSessionTypes.ts'
 import type { CoverageResult } from '../../domain/models/StudyCoverage.ts'
+import type { QuestionHistoryEntry } from '../../domain/models/QuestionPlanning.ts'
+import type { StudyHistoryPort } from '../../domain/ports/QuestionBankPorts.ts'
 import { StorageUnavailableError } from '../../domain/models/StorageErrors.ts'
 import { SEED_QUESTIONS } from '../study/SeedStudyData.ts'
 import { withStorageDeadline } from '../storage/withStorageDeadline.ts'
 
-export class D1StudyHistory {
+export class D1StudyHistory implements StudyHistoryPort {
   private readonly db: D1Database
   constructor(db: D1Database) { this.db = db }
 
@@ -34,19 +36,30 @@ export class D1StudyHistory {
     } catch (cause) { throw new StorageUnavailableError('D1', { cause }) }
   }
 
-  async coverage(): Promise<CoverageResult[]> {
+  private async latestRows() {
     try {
-      const result = await withStorageDeadline(this.db.prepare(`SELECT question_id, topic_id, is_correct, hint_used FROM (
+      const result = await withStorageDeadline(this.db.prepare(`SELECT question_id, topic_id, is_correct, hint_used, answered_at FROM (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY question_id ORDER BY answered_at DESC, attempt_id DESC) AS position
         FROM study_attempts
       ) WHERE position = 1 ORDER BY question_id`).all<{
-        question_id: string; topic_id: string; is_correct: number; hint_used: number
+        question_id: string; topic_id: string; is_correct: number; hint_used: number; answered_at: string
       }>(), 'D1')
-      if (!result.success) throw new Error('Coverage query failed')
-      return result.results.map((row) => ({
-        questionId: row.question_id, topicId: row.topic_id,
-        isCorrect: Boolean(row.is_correct), hintUsed: Boolean(row.hint_used),
-      }))
+      if (!result.success) throw new Error('Latest results query failed')
+      return result.results
     } catch (cause) { throw new StorageUnavailableError('D1', { cause }) }
+  }
+
+  async coverage(): Promise<CoverageResult[]> {
+    return (await this.latestRows()).map((row) => ({
+      questionId: row.question_id, topicId: row.topic_id,
+      isCorrect: Boolean(row.is_correct), hintUsed: Boolean(row.hint_used),
+    }))
+  }
+
+  async latestResults(): Promise<QuestionHistoryEntry[]> {
+    return (await this.latestRows()).map((row) => ({
+      questionId: row.question_id, topicId: row.topic_id, isCorrect: Boolean(row.is_correct),
+      hintUsed: Boolean(row.hint_used), answeredAt: row.answered_at,
+    }))
   }
 }

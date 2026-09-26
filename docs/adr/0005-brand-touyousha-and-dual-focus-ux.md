@@ -36,3 +36,4 @@
 - 문자열에 공백·제로폭 문자·HTML을 삽입하지 않고 파서 단계에서 처리한다. 코드, 이스케이프, 링크와 기존 HTML 안전 처리 동작을 보존한다.
 - 줄바꿈 정규화 결과를 렌더러에 전달하고, 실제 React HTML 출력으로 강조 및 기존 문법의 회귀를 검증한다.
 - 참고: [remark-cjk-friendly](https://github.com/tats-u/markdown-cjk-friendly/tree/main/packages/remark-cjk-friendly)
+- 표와 수식 (2026-09-27): `remark-gfm`으로 GFM 표를, `remark-math`·`rehype-katex`로 `$...$`·`$$...$$` 수식을 렌더링한다. 넓은 표는 컨테이너 안에서 가로 스크롤하고, 해설 프롬프트는 수식을 LaTeX로, 표를 행마다 줄바꿈한 GFM으로 작성하도록 지시한다.

@@ -27,6 +27,8 @@ export interface PublicQuestionDto {
   options: QuestionOptionDto[]
   currentQuestionIndex?: number
   totalQuestions?: number
+  /** Drafted and blind-reviewed by AI; not a human-verified question. */
+  isAiGenerated?: boolean
 }
 
 export interface SubmitAnswerRequestDto {

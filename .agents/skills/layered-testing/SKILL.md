@@ -46,4 +46,4 @@ describe('[Level / Layer] Feature: ComponentName', () => {
 ## Markdown UI Regression
 
 - For TSX rendering in Node tests, import `test/helpers/registerTsx.ts` before dynamically importing components, then use React's `renderToStaticMarkup`.
-- Exercise the actual `MarkdownView`: Korean particles adjoining quoted/parenthesized emphasis, nested emphasis, code, escapes, links, and raw HTML safety. Assert semantic HTML and unchanged visible text.
+- Exercise the actual `MarkdownView`: Korean particles adjoining quoted/parenthesized emphasis, nested emphasis, code, escapes, links, raw HTML safety, GFM tables, and KaTeX math (`$...$`, block `$$`). Assert semantic HTML and unchanged visible text.

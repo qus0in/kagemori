@@ -4,6 +4,7 @@ import type { PracticeSessionRepository } from '../../domain/ports/PracticeSessi
 import type { QuestionRepository } from '../../domain/ports/QuestionRepository.ts'
 import type { PublicQuestionDto } from '../dto/StudyDto.ts'
 import type { PracticeSession } from '../../domain/models/PracticeSession.ts'
+import { isGeneratedQuestionId } from '../../domain/models/GeneratedQuestion.ts'
 
 export class GetNextQuestionUseCase {
   private readonly sessionRepository: PracticeSessionRepository
@@ -47,6 +48,7 @@ export class GetNextQuestionUseCase {
         id: opt.id,
         text: opt.text,
       })),
+      ...(isGeneratedQuestionId(question.id) ? { isAiGenerated: true } : {}),
     }
   }
 }

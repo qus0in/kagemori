@@ -2,45 +2,32 @@
 import type { Question } from '../../domain/models/Question.ts'
 import type { PracticeSession } from '../../domain/models/PracticeSession.ts'
 import type { QuestionRepository } from '../../domain/ports/QuestionRepository.ts'
+import type { GeneratedQuestionStore, QuestionBankPort } from '../../domain/ports/QuestionBankPorts.ts'
+import { isGeneratedQuestionId, type GeneratedQuestionRecord } from '../../domain/models/GeneratedQuestion.ts'
+import { seededShuffle } from '../../domain/models/QuestionPlanning.ts'
 import { SEED_QUESTIONS } from './SeedStudyData.ts'
-
-function hashStringFnv1a(str: string): number {
-  let hash = 2166136261
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
-}
+import { InMemoryGeneratedQuestionStore } from './InMemoryGeneratedQuestionStore.ts'
 
 export function shuffleQuestionsWithSeed(questions: Question[], seed: string): Question[] {
-  const shuffled = [...questions]
-  let state = hashStringFnv1a(seed) || 1
-  const rand = () => {
-    state = (state * 1664525 + 1013904223) >>> 0
-    return state / 4294967296
-  }
-
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1))
-    const temp = shuffled[i]
-    shuffled[i] = shuffled[j]
-    shuffled[j] = temp
-  }
-  return shuffled
+  return seededShuffle(questions, seed)
 }
 
-export class InMemoryQuestionRepository implements QuestionRepository {
+/** Fixed seed questions plus reviewed AI questions from the generated store. */
+export class InMemoryQuestionRepository implements QuestionRepository, QuestionBankPort {
   private questions: Map<string, Question> = new Map()
+  private readonly generated: GeneratedQuestionStore
 
-  constructor(initialQuestions: Question[] = SEED_QUESTIONS) {
+  constructor(initialQuestions: Question[] = SEED_QUESTIONS, generated: GeneratedQuestionStore = new InMemoryGeneratedQuestionStore()) {
     for (const q of initialQuestions) {
       this.questions.set(q.id, q)
     }
+    this.generated = generated
   }
 
   async findById(id: string): Promise<Question | null> {
-    return this.questions.get(id) || null
+    const seeded = this.questions.get(id)
+    if (seeded || !isGeneratedQuestionId(id)) return seeded ?? null
+    return (await this.generated.findById(id))?.question ?? null
   }
 
   async findNextForSession(session: PracticeSession): Promise<Question | null> {
@@ -48,6 +35,11 @@ export class InMemoryQuestionRepository implements QuestionRepository {
       return null
     }
     const answeredIds = new Set((session?.attempts ?? []).map((a) => a.questionId))
+    if (session?.questionIds) {
+      const nextId = session.questionIds.find((id) => !answeredIds.has(id))
+      return nextId ? this.findById(nextId) : null
+    }
+    // Legacy sessions created before planned question lists.
     const all = Array.from(this.questions.values())
     const ordered = session?.sessionId ? shuffleQuestionsWithSeed(all, session.sessionId) : all
 
@@ -61,5 +53,14 @@ export class InMemoryQuestionRepository implements QuestionRepository {
 
   async getAll(): Promise<Question[]> {
     return Array.from(this.questions.values())
+  }
+
+  async listQuestions(): Promise<Question[]> {
+    const generated = await this.generated.list()
+    return [...this.questions.values(), ...generated.map((record) => record.question)]
+  }
+
+  async saveGenerated(records: readonly GeneratedQuestionRecord[]): Promise<void> {
+    await this.generated.save(records)
   }
 }
