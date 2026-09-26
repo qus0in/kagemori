@@ -1,21 +1,10 @@
 import ky from 'ky'
-import { CalendarDate } from '../../domain/models/CalendarDate.ts'
-import { Schedule, ScheduleItem } from '../../domain/models/Schedule.ts'
+import { Schedule } from '../../domain/models/Schedule.ts'
 import type { ScheduleRepository } from '../../domain/ports/ScheduleRepository.ts'
 import type { CachePort } from '../../domain/ports/CachePort.ts'
 import { createComponentLogger } from '../logger/logger.ts'
 import { LruCacheAdapter } from '../cache/LruCacheAdapter.ts'
-
-interface ApiScheduleResponse {
-  round: number
-  title: string
-  items: Array<{
-    id: string
-    title: string
-    targetName: string
-    targetDate: string
-  }>
-}
+import { mapApiToSchedule, type ApiScheduleResponse } from './HttpScheduleTypes.ts'
 
 export class HttpScheduleRepository implements ScheduleRepository {
   private readonly endpoint: string
@@ -41,35 +30,17 @@ export class HttpScheduleRepository implements ScheduleRepository {
     }
 
     this.log.info({ endpoint: this.endpoint }, 'Fetching schedule from API via ky')
-
     try {
       const data = await this.client
         .get(this.endpoint, {
-          retry: {
-            limit: 2,
-            methods: ['get'],
-          },
+          retry: { limit: 2, methods: ['get'] },
           timeout: 5000,
         })
         .json<ApiScheduleResponse>()
 
-      const schedule = new Schedule({
-        round: data.round,
-        title: data.title,
-        items: data.items.map(
-          (item) =>
-            new ScheduleItem({
-              id: item.id,
-              title: item.title,
-              targetName: item.targetName,
-              targetDate: CalendarDate.fromString(item.targetDate),
-            }),
-        ),
-      })
-
+      const schedule = mapApiToSchedule(data)
       this.cache.set(this.endpoint, schedule)
       this.log.info({ round: data.round, itemsCount: data.items.length }, 'Schedule cached and returned')
-
       return schedule
     } catch (err) {
       this.log.error({ err }, 'Failed to fetch schedule from API via ky')

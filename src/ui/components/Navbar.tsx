@@ -2,9 +2,16 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore.ts'
 import { DICTIONARY } from '../constants/dictionary.ts'
 
+const NAV_ITEMS = [
+  { to: '/', key: 'counter' as const },
+  { to: '/about', key: 'about' as const },
+  { to: '/catalog', key: 'catalog' as const },
+  { to: '/study', key: 'study' as const },
+]
+
 export function Navbar() {
   const { theme, toggleTheme } = useAppStore()
-  const location = useLocation()
+  const loc = useLocation()
 
   return (
     <nav className="flex justify-between items-center py-4 mb-4 border-b border-base-300">
@@ -13,30 +20,15 @@ export function Navbar() {
           {DICTIONARY.common.brandName}
         </Link>
         <div className="flex gap-2 text-xs font-semibold">
-          <Link
-            to="/"
-            className={`px-3 py-1 rounded transition-colors ${
-              location.pathname === '/' ? 'bg-primary text-white' : 'hover:bg-base-300 text-base-content/70'
-            }`}
-          >
-            {DICTIONARY.nav.counter}
-          </Link>
-          <Link
-            to="/about"
-            className={`px-3 py-1 rounded transition-colors ${
-              location.pathname === '/about' ? 'bg-primary text-white' : 'hover:bg-base-300 text-base-content/70'
-            }`}
-          >
-            {DICTIONARY.nav.about}
-          </Link>
-          <Link
-            to="/catalog"
-            className={`px-3 py-1 rounded transition-colors ${
-              location.pathname === '/catalog' ? 'bg-primary text-white' : 'hover:bg-base-300 text-base-content/70'
-            }`}
-          >
-            {DICTIONARY.nav.catalog}
-          </Link>
+          {NAV_ITEMS.map((item) => {
+            const active = loc.pathname === item.to
+            const cls = active ? 'bg-primary text-white' : 'hover:bg-base-300 text-base-content/70'
+            return (
+              <Link key={item.to} to={item.to} className={`px-3 py-1 rounded transition-colors ${cls}`}>
+                {DICTIONARY.nav[item.key]}
+              </Link>
+            )
+          })}
         </div>
       </div>
 

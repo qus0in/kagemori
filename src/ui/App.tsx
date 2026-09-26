@@ -5,6 +5,7 @@ import { Navbar } from './components/Navbar.tsx'
 import { MainSchedulePage } from './pages/MainSchedulePage.tsx'
 import { AboutPage } from './pages/AboutPage.tsx'
 import { CatalogPage } from './pages/CatalogPage.tsx'
+import { StudyPage } from './pages/StudyPage.tsx'
 import { DICTIONARY } from './constants/dictionary.ts'
 
 export function App() {
@@ -31,6 +32,7 @@ export function App() {
                 <Route path="/" element={<MainSchedulePage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/catalog" element={<CatalogPage />} />
+                <Route path="/study" element={<StudyPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>

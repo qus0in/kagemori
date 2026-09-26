@@ -1,6 +1,5 @@
-/**
- * Value Object representing a calendar date (YYYY-MM-DD) without time or timezone ambiguity.
- */
+// src/domain/models/CalendarDate.ts
+
 export class CalendarDate {
   public readonly year: number
   public readonly month: number
@@ -33,10 +32,6 @@ export class CalendarDate {
     return new CalendarDate(year, month, day)
   }
 
-  /**
-   * Calculates calendar day difference between this date and target date.
-   * Positive means target is in the future.
-   */
   public diffInDays(target: CalendarDate): number {
     const thisUtc = Date.UTC(this.year, this.month - 1, this.day)
     const targetUtc = Date.UTC(target.year, target.month - 1, target.day)
