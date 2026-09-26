@@ -2,8 +2,13 @@
 import { Hono } from 'hono'
 import { D1CatalogRepository } from '../../src/infra/d1/D1CatalogRepository.ts'
 import type { Env } from '../types.ts'
+import { StorageUnavailableError } from '../../src/domain/models/StorageErrors.ts'
 
 export const catalogRoutes = new Hono<{ Bindings: Env }>()
+catalogRoutes.use('/api/catalog/*', async (c, next) => {
+  if (c.env?.STORAGE_MODE === 'persistent' && !c.env.DB) throw new StorageUnavailableError('D1 binding')
+  await next()
+})
 
 catalogRoutes.get('/api/catalog/overview', async (c) => {
   const repo = new D1CatalogRepository(c.env?.DB)

@@ -8,6 +8,7 @@ import type {
 } from '../../domain/ports/StudyPorts.ts'
 import type { SubmitAnswerRequestDto, SubmitAnswerResponseDto } from '../dto/StudyDto.ts'
 import { validateAndLoadQuestion } from './SubmitAnswerValidation.ts'
+import { SessionConflictError } from '../../domain/models/StorageErrors.ts'
 import {
   resolveAnswerExplanation,
   resolveSourceInfo,
@@ -36,7 +37,7 @@ export class SubmitAnswerUseCase {
   }
 
   public async execute(req: SubmitAnswerRequestDto): Promise<SubmitAnswerResponseDto> {
-    const { session, question } = await validateAndLoadQuestion(
+    let { session, question } = await validateAndLoadQuestion(
       this.sRepo,
       this.qRepo,
       req.sessionId,
@@ -44,20 +45,44 @@ export class SubmitAnswerUseCase {
       req.optionId,
     )
 
-    const isCorrect = question.evaluateAnswer(req.optionId)
-    session.recordAttempt({
-      questionId: question.id,
-      optionId: req.optionId,
-      isCorrect,
-      hintUsed: req.hintUsed,
-      durationMs: req.durationMs,
-    })
-    await this.sRepo.save(session)
+    const previous = session.attempts.find((attempt) => attempt.questionId === question.id)
+    let isCorrect = previous?.isFinalCorrect ?? question.evaluateAnswer(req.optionId)
+    if (previous && (previous.finalAnswerOptionId !== req.optionId || previous.hintUsed !== req.hintUsed)) {
+      throw new SessionConflictError()
+    }
+    if (!previous) {
+      const next = await this.qRepo.findNextForSession(session)
+      if (next?.id !== question.id) throw new SessionConflictError()
+      session.recordAttempt({
+        questionId: question.id,
+        topicId: question.topicId,
+        questionVersion: question.version,
+        optionId: req.optionId,
+        isCorrect,
+        hintUsed: req.hintUsed,
+        durationMs: req.durationMs,
+      })
+      try { await this.sRepo.save(session) } catch (error) {
+        if (!(error instanceof SessionConflictError)) throw error
+        const latest = await this.sRepo.findById(session.sessionId)
+        const recorded = latest?.attempts.find((attempt) => attempt.questionId === question.id)
+        if (!latest || recorded?.finalAnswerOptionId !== req.optionId || recorded.hintUsed !== req.hintUsed) throw error
+        session = latest
+        isCorrect = recorded.isFinalCorrect
+      }
+    }
 
     const c = question.conceptId ? await this.cRepo.findById(question.conceptId) : null
     const src = await resolveSourceInfo(this.src, c?.sourceId || question.sourceId)
-    const exp = await resolveAnswerExplanation(this.ai, c, question, req.optionId, isCorrect)
+    const exp = previous ? question.explanation : await resolveAnswerExplanation(this.ai, c, question, req.optionId, isCorrect)
 
-    return formatSubmitResult(isCorrect, question, exp, c, src, session.isCompleted)
+    return {
+      ...formatSubmitResult(isCorrect, question, exp, c, src, session.isCompleted),
+      conceptId: question.conceptId,
+      sessionProgress: {
+        currentQuestionIndex: session.currentQuestionIndex, totalQuestions: session.targetQuestionCount,
+        isCompleted: session.isCompleted, correctCount: session.correctCount,
+      },
+    }
   }
 }

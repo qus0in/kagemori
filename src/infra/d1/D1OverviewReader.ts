@@ -16,36 +16,31 @@ interface OverviewBookDbRow {
 export async function fetchD1Overview(db?: D1DatabaseLike): Promise<CatalogOverview> {
   if (!db) return getFallbackOverview()
 
-  try {
-    const res = await db.prepare(OVERVIEW_BOOKS_SQL).all<OverviewBookDbRow>()
-    if (!res.results?.length) return getFallbackOverview()
+  const res = await db.prepare(OVERVIEW_BOOKS_SQL).all<OverviewBookDbRow>()
+  if (!res.success || !res.results?.length) throw new Error('D1 catalog is not initialized')
 
-    const totalParts = res.results.reduce((acc, b) => acc + Number(b.partCount), 0)
-    const totalChapters = res.results.reduce((acc, b) => acc + Number(b.chapterCount), 0)
-    const bp = await fetchD1Blueprint(db)
-    const totalQuestions = bp.subjects.reduce((sum, s) => sum + s.questionCount, 0)
-    const topicsCount = bp.subjects.reduce((sum, s) => sum + s.topics.length, 0)
+  const totalParts = res.results.reduce((acc, b) => acc + Number(b.partCount), 0)
+  const totalChapters = res.results.reduce((acc, b) => acc + Number(b.chapterCount), 0)
+  const bp = await fetchD1Blueprint(db)
+  const totalQuestions = bp.subjects.reduce((sum, s) => sum + s.questionCount, 0)
+  const topicsCount = bp.subjects.reduce((sum, s) => sum + s.topics.length, 0)
 
-    return {
-      books: res.results.map((r) => ({
-        id: r.id,
-        volumeNo: r.volume_no,
-        title: r.title,
-        isbn13: r.isbn13,
-        partCount: Number(r.partCount),
-        chapterCount: Number(r.chapterCount),
-      })),
-      totalParts,
-      totalChapters,
-      blueprintSummary: {
-        examCode: bp.examCode,
-        totalQuestions,
-        subjectsCount: bp.subjects.length,
-        topicsCount,
-      },
-    }
-  } catch (error) {
-    console.warn('Failed to fetch catalog overview from D1, falling back to static:', error)
-    return getFallbackOverview()
+  return {
+    books: res.results.map((r) => ({
+      id: r.id,
+      volumeNo: r.volume_no,
+      title: r.title,
+      isbn13: r.isbn13,
+      partCount: Number(r.partCount),
+      chapterCount: Number(r.chapterCount),
+    })),
+    totalParts,
+    totalChapters,
+    blueprintSummary: {
+      examCode: bp.examCode,
+      totalQuestions,
+      subjectsCount: bp.subjects.length,
+      topicsCount,
+    },
   }
 }

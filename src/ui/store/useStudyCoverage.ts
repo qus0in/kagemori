@@ -1,27 +1,16 @@
-import { create } from 'zustand'
-import type { CoverageResult } from '../../domain/models/StudyCoverage.ts'
-import { BrowserStudyCoverage } from '../../infra/cache/BrowserStudyCoverage.ts'
+import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { fetchStudyCoverage } from '../../infra/api/HttpStudyCoverage.ts'
+import { useStudySession } from '../hooks/useStudySession.ts'
 
-interface CoverageState {
-  results: CoverageResult[]
-  storageAvailable: boolean
-  record: (result: CoverageResult) => void
-  clear: () => void
+// The query cache is temporary; D1 is the only persistent progress store.
+export function useStudyCoverage() {
+  const feedback = useStudySession((state) => state.feedback)
+  const query = useQuery({
+    queryKey: ['study', 'coverage'], queryFn: fetchStudyCoverage,
+    refetchInterval: 5000, refetchOnWindowFocus: true, retry: 1,
+  })
+  const { refetch } = query
+  useEffect(() => { if (feedback) void refetch() }, [feedback, refetch])
+  return query
 }
-
-export function createStudyCoverageStore(storage = new BrowserStudyCoverage()) {
-  return create<CoverageState>((set, get) => ({
-    ...storage.load(),
-    record: (result) => {
-      const results = [...get().results.filter((item) => item.questionId !== result.questionId), result]
-      const storageAvailable = storage.save(results)
-      set({ results, storageAvailable })
-    },
-    clear: () => {
-      const storageAvailable = storage.clear()
-      set({ results: [], storageAvailable })
-    },
-  }))
-}
-
-export const useStudyCoverage = createStudyCoverageStore()

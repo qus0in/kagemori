@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { GetConceptHintUseCase } from '../../src/app/usecases/GetConceptHintUseCase.ts'
 import type { ConceptHintRequestDto, ConceptHintResponseDto } from '../../src/app/dto/StudyDto.ts'
 import { type Env, getStudyRepo, getAiAdapter } from '../types.ts'
+import { SessionConflictError, StorageUnavailableError } from '../../src/domain/models/StorageErrors.ts'
 
 export const studyHintRoute = new Hono<{ Bindings: Env }>()
 
@@ -34,6 +35,7 @@ studyHintRoute.post('/api/study/session/:sessionId/hint', async (c) => {
     }
     return c.json(response)
   } catch (err: unknown) {
+    if (err instanceof SessionConflictError || err instanceof StorageUnavailableError) throw err
     const msg = err instanceof Error ? err.message : 'Failed to retrieve hint'
     return c.json({ error: msg }, 400)
   }

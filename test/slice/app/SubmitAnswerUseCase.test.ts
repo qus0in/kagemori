@@ -67,7 +67,7 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
 
       const mockQuestionRepo: QuestionRepository = {
         findById: async (id: string) => (id === sampleQuestion.id ? sampleQuestion : null),
-        findNextForSession: async () => null,
+        findNextForSession: async () => sampleQuestion,
       }
 
       const mockConceptRepo: ConceptRepository = {
@@ -150,7 +150,7 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
       }
       const mockQuestionRepo: QuestionRepository = {
         findById: async () => sampleQuestion,
-        findNextForSession: async () => null,
+        findNextForSession: async () => sampleQuestion,
       }
       const mockConceptRepo: ConceptRepository = {
         findById: async () => sampleConcept,
@@ -200,7 +200,7 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
       })
       const useCase = new SubmitAnswerUseCase(
         { findById: async () => session, save: async () => {} },
-        { findById: async () => sampleQuestion, findNextForSession: async () => null },
+        { findById: async () => sampleQuestion, findNextForSession: async () => sampleQuestion },
         { findById: async () => sampleConcept, findByTopicId: async () => [] }
       )
 
@@ -222,7 +222,7 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
       // Given
       const useCase = new SubmitAnswerUseCase(
         { findById: async () => null, save: async () => {} },
-        { findById: async () => sampleQuestion, findNextForSession: async () => null },
+        { findById: async () => sampleQuestion, findNextForSession: async () => sampleQuestion },
         { findById: async () => sampleConcept, findByTopicId: async () => [] }
       )
 
@@ -251,7 +251,7 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
       })
       const useCase = new SubmitAnswerUseCase(
         { findById: async () => session, save: async () => {} },
-        { findById: async () => null, findNextForSession: async () => null },
+        { findById: async () => null, findNextForSession: async () => sampleQuestion },
         { findById: async () => sampleConcept, findByTopicId: async () => [] }
       )
 

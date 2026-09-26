@@ -1,13 +1,6 @@
-export interface D1DatabaseLike {
-  prepare(query: string): {
-    bind(...values: unknown[]): {
-      first<T = Record<string, unknown>>(colName?: string): Promise<T | null>
-      all<T = Record<string, unknown>>(): Promise<{ results: T[] }>
-    }
-    first<T = Record<string, unknown>>(colName?: string): Promise<T | null>
-    all<T = Record<string, unknown>>(): Promise<{ results: T[] }>
-  }
-}
+import type { D1Database } from '@cloudflare/workers-types'
+
+export type D1DatabaseLike = Pick<D1Database, 'prepare' | 'batch'>
 
 export interface DbBookRow {
   id: string

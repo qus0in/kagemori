@@ -27,6 +27,7 @@ describe('[Slice / UI] Feature: Study coverage visualization', () => {
   it('Given a fresh study page, When rendered, Then places coverage directly after the three mode cards', () => {
     const client = new QueryClient()
     client.setQueryData(['catalog', 'blueprint'], blueprint)
+    client.setQueryData(['study', 'coverage'], { results: [] })
     const html = renderToStaticMarkup(createElement(QueryClientProvider, { client }, createElement(StudyPage)))
     assert.ok(html.indexOf('실전 점검') < html.indexOf('나의 학습 지도'))
     assert.ok(html.includes('aria-valuenow="0"'))

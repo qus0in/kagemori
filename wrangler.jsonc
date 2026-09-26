@@ -3,6 +3,7 @@
   "name": "kagemori",
   "compatibility_date": "2026-09-24",
   "main": "./worker/index.ts",
+  "vars": { "STORAGE_MODE": "persistent" },
   "assets": {
     "not_found_handling": "single-page-application"
   },

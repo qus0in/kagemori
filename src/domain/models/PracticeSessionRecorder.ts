@@ -20,6 +20,8 @@ export function executeRecordAttempt(
     attemptId: input.attemptId ?? `att-${state.sessionId}-${state.attempts.length + 1}`,
     sessionId: state.sessionId,
     questionId: input.questionId,
+    topicId: input.topicId,
+    questionVersion: input.questionVersion,
     firstAnswerOptionId: first,
     finalAnswerOptionId: input.optionId,
     isFirstCorrect,

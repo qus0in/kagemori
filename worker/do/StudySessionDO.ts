@@ -1,60 +1,55 @@
-// worker/do/StudySessionDO.ts
 import type { PracticeSessionProps } from '../../src/domain/models/PracticeSessionTypes.ts'
+import { validateSessionUpdate } from './validateSessionUpdate.ts'
+import type { D1Database } from '@cloudflare/workers-types'
+import { queueArchive, archiveSession } from './StudySessionArchive.ts'
 
+export interface SessionStorage {
+  get<T>(key: string): Promise<T | undefined>
+  put<T>(key: string, value: T): Promise<void>
+  setAlarm(time: number): Promise<void>
+}
 export interface DurableObjectState {
-  storage: {
-    get<T>(key: string): Promise<T | undefined>
-    put<T>(key: string, value: T): Promise<void>
-    delete(key: string): Promise<boolean>
-  }
+  storage: SessionStorage & { transaction<T>(callback: (txn: SessionStorage) => Promise<T>): Promise<T> }
 }
 
 export class StudySessionDO {
-  private state: DurableObjectState
-  private cachedSession: PracticeSessionProps | null = null
+  private readonly state: DurableObjectState
+  private readonly db?: D1Database
+  constructor(state: DurableObjectState, env?: { DB?: D1Database }) { this.state = state; this.db = env?.DB }
 
-  constructor(state: DurableObjectState) {
-    this.state = state
-  }
-
-  async getSession(): Promise<PracticeSessionProps | null> {
-    if (this.cachedSession) {
-      return this.cachedSession
-    }
-    const session = await this.state.storage.get<PracticeSessionProps>('session')
-    this.cachedSession = session ?? null
-    return this.cachedSession
-  }
-
-  async saveSession(props: PracticeSessionProps): Promise<void> {
-    this.cachedSession = props
-    await this.state.storage.put('session', props)
-  }
+  async alarm(): Promise<void> { await archiveSession(this.state, this.db) }
 
   async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url)
-
-    if (request.method === 'GET' && url.pathname === '/session') {
-      const session = await this.getSession()
-      if (!session) {
-        return new Response(JSON.stringify({ error: 'Session not found' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        })
+    if (new URL(request.url).pathname !== '/session') return new Response('Not Found', { status: 404 })
+    if (request.method === 'GET') {
+      const snapshot = await this.state.storage.transaction(async (txn) => {
+        const session = await txn.get<PracticeSessionProps>('session')
+        const revision = (await txn.get<number>('revision')) ?? 0
+        if (session) await queueArchive(txn, session, revision)
+        return { session, revision }
+      })
+      return snapshot.session ? Response.json(snapshot) : Response.json({ error: 'Session not found' }, { status: 404 })
+    }
+    if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
+    const body = await request.json().catch(() => null) as {
+      session?: PracticeSessionProps; expectedRevision?: number | null
+    } | null
+    if (!body?.session || !(body.expectedRevision === null ||
+      (Number.isInteger(body.expectedRevision) && Number(body.expectedRevision) >= 0))) {
+      return Response.json({ error: 'Invalid session update' }, { status: 400 })
+    }
+    const session = body.session
+    return this.state.storage.transaction(async (txn) => {
+      const previous = await txn.get<PracticeSessionProps>('session')
+      const revision = (await txn.get<number>('revision')) ?? 0
+      if (previous ? body.expectedRevision !== revision : body.expectedRevision !== null) {
+        return Response.json({ error: 'Session conflict' }, { status: 409 })
       }
-      return new Response(JSON.stringify(session), {
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (request.method === 'POST' && url.pathname === '/session') {
-      const body = (await request.json()) as PracticeSessionProps
-      await this.saveSession(body)
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
-    return new Response('Not Found', { status: 404 })
+      if (!validateSessionUpdate(session, previous)) return Response.json({ error: 'Invalid transition' }, { status: 400 })
+      await txn.put('session', session)
+      await txn.put('revision', revision + 1)
+      await queueArchive(txn, session, revision + 1)
+      return Response.json({ revision: revision + 1 })
+    })
   }
 }

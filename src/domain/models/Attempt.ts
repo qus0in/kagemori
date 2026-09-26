@@ -4,6 +4,8 @@ export interface AttemptProps {
   readonly attemptId: string
   readonly sessionId: string
   readonly questionId: string
+  readonly topicId?: string
+  readonly questionVersion?: number
   readonly firstAnswerOptionId: string
   readonly finalAnswerOptionId: string
   readonly isFirstCorrect: boolean
@@ -17,6 +19,8 @@ export class Attempt implements AttemptProps {
   public readonly attemptId: string
   public readonly sessionId: string
   public readonly questionId: string
+  public readonly topicId?: string
+  public readonly questionVersion?: number
   public readonly firstAnswerOptionId: string
   public readonly finalAnswerOptionId: string
   public readonly isFirstCorrect: boolean
@@ -29,6 +33,8 @@ export class Attempt implements AttemptProps {
     this.attemptId = props.attemptId
     this.sessionId = props.sessionId
     this.questionId = props.questionId
+    this.topicId = props.topicId
+    this.questionVersion = props.questionVersion
     this.firstAnswerOptionId = props.firstAnswerOptionId
     this.finalAnswerOptionId = props.finalAnswerOptionId
     this.isFirstCorrect = props.isFirstCorrect

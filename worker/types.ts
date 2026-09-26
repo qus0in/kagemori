@@ -6,11 +6,14 @@ import { InMemoryStudyRepository } from '../src/infra/study/InMemoryStudyReposit
 import {
   DurableObjectSessionRepository,
   type DurableObjectNamespaceLike,
+  type BackgroundTask,
 } from '../src/infra/study/DurableObjectSessionRepository.ts'
 import type { CloudflareKvBinding } from '../src/infra/study/KvSessionCache.ts'
 import { GeminiAiAdapter } from '../src/infra/ai/GeminiAiAdapter.ts'
+import { StorageUnavailableError } from '../src/domain/models/StorageErrors.ts'
 
 export type Env = {
+  STORAGE_MODE?: 'persistent' | 'local'
   DB?: D1Database
   GEMINI_API_KEY?: string
   STUDY_SESSION_DO?: DurableObjectNamespaceLike
@@ -21,13 +24,17 @@ export type Env = {
 
 let defaultStudyRepo: InMemoryStudyRepository | null = null
 
-export function getStudyRepo(env?: Env): StudyRepository {
+export function getStudyRepo(env?: Env, background?: BackgroundTask): StudyRepository {
   if (env?.STUDY_REPO) {
     return env.STUDY_REPO
   }
-  if (env?.STUDY_SESSION_DO || env?.KAGEMORI_KV) {
-    const doRepo = new DurableObjectSessionRepository(env.STUDY_SESSION_DO, env.KAGEMORI_KV)
+  if (env?.STORAGE_MODE === 'persistent' && !env.DB) throw new StorageUnavailableError('D1 binding')
+  if (env?.STUDY_SESSION_DO) {
+    const doRepo = new DurableObjectSessionRepository(env.STUDY_SESSION_DO, env.KAGEMORI_KV, background)
     return new InMemoryStudyRepository(doRepo)
+  }
+  if (env?.STORAGE_MODE === 'persistent' || (env?.STORAGE_MODE !== 'local' && (env?.DB || env?.KAGEMORI_KV))) {
+    throw new StorageUnavailableError('DO binding')
   }
   if (!defaultStudyRepo) {
     defaultStudyRepo = new InMemoryStudyRepository()

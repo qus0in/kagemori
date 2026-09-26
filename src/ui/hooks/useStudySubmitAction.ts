@@ -1,6 +1,5 @@
 import type { HttpStudyRepositoryContract } from '../../infra/api/HttpStudyRepository.ts'
 import type { StudySessionState } from './useStudySessionTypes.ts'
-import { useStudyCoverage } from '../store/useStudyCoverage.ts'
 
 type SetFn = (partial: Partial<StudySessionState> | ((s: StudySessionState) => Partial<StudySessionState>)) => void
 type GetFn = () => StudySessionState
@@ -28,12 +27,7 @@ export async function executeSubmitAnswer(
     const totalCount = res.sessionProgress?.currentQuestionIndex ?? score.totalCount + 1
 
     set({ feedback: res, isSubmitting: false, isCompleted, score: { correctCount, totalCount } })
-    useStudyCoverage.getState().record({
-      questionId: currentQuestion.id,
-      topicId: currentQuestion.topicId,
-      isCorrect: res.isCorrect,
-      hintUsed: Boolean(hint),
-    })
+
   } catch (err) {
     const msg = err instanceof Error ? err.message : '답안 제출에 실패했습니다.'
     set({ isSubmitting: false, error: msg })

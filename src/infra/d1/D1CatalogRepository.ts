@@ -1,3 +1,5 @@
+import { withStorageDeadline } from '../storage/withStorageDeadline.ts'
+import { StorageUnavailableError } from '../../domain/models/StorageErrors.ts'
 // src/infra/d1/D1CatalogRepository.ts
 import type { BookCatalog, ExamBlueprint } from '../../domain/models/Catalog.ts'
 import type { CatalogOverview, CatalogRepository } from '../../domain/ports/CatalogRepository.ts'
@@ -15,12 +17,17 @@ export class D1CatalogRepository implements CatalogRepository {
     this.db = db
   }
 
+  private async read<T>(query: Promise<T>): Promise<T> {
+    try { return await withStorageDeadline(query, 'D1') }
+    catch (cause) { throw new StorageUnavailableError('D1', { cause }) }
+  }
+
   public getOverview(): Promise<CatalogOverview> {
-    return fetchD1Overview(this.db)
+    return this.read(fetchD1Overview(this.db))
   }
 
   public getBooks(): Promise<BookCatalog[]> {
-    return fetchD1Books(this.db)
+    return this.read(fetchD1Books(this.db))
   }
 
   public async getBookById(id: string): Promise<BookCatalog | null> {
@@ -29,6 +36,6 @@ export class D1CatalogRepository implements CatalogRepository {
   }
 
   public getExamBlueprint(): Promise<ExamBlueprint> {
-    return fetchD1Blueprint(this.db)
+    return this.read(fetchD1Blueprint(this.db))
   }
 }

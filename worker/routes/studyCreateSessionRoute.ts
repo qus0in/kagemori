@@ -19,7 +19,7 @@ studyCreateSessionRoute.post('/api/study/session', async (c) => {
     ? (body.purpose as SessionPurpose)
     : 'DIAGNOSTIC'
 
-  const repo = getStudyRepo(c.env)
+  const repo = getStudyRepo(c.env, c.env?.STUDY_SESSION_DO ? (task) => c.executionCtx.waitUntil(task) : undefined)
   const session = await repo.createSession(purpose, body.targetCount)
 
   const response: CreateSessionResponseDto = {

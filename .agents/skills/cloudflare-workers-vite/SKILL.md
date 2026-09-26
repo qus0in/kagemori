@@ -25,3 +25,8 @@ Use this skill when configuring Vite, running local full-stack development, buil
 - **On-Demand Only**: Deploy to Cloudflare ONLY when explicitly requested by the user. Never deploy automatically.
 - Before deploying, verify authentication with `wrangler whoami`.
 - After deploy, check both root URL (`/`) and API endpoint (`/api/schedule`).
+
+## Study Storage
+
+- Follow ADR 0006 and `docs/operations/study-storage.md`: DO transactions own session progression, D1 stores global attempt history, KV stores optional metadata only.
+- Validate migration 0003 locally; apply it before an explicitly requested deployment. Never mask persistent storage failures with local state.

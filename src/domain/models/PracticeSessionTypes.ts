@@ -15,6 +15,8 @@ export interface PracticeSessionProps {
 }
 
 export interface RecordAttemptInput {
+  readonly topicId?: string
+  readonly questionVersion?: number
   readonly attemptId?: string
   readonly questionId: string
   readonly optionId: string
