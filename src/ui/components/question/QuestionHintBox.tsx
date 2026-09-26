@@ -22,7 +22,7 @@ export function QuestionHintBox({ hint, isHintLoading, onRequestHint }: Question
                 <span className="text-xs badge badge-info badge-outline">{hint.conceptTitle}</span>
               )}
             </div>
-            <MarkdownView content={hint.hintText || hint.hint} />
+            <MarkdownView content={hint.hintText || hint.hint || ''} />
             {hint.sourceTitle && (
               <div className="text-xs text-base-content/60 pt-1">
                 출처: {hint.sourceTitle}

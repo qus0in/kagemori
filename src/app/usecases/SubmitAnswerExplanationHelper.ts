@@ -15,12 +15,15 @@ export async function resolveAnswerExplanation(
   if (!aiPort || !concept) return question.explanation
   try {
     const selectedOption = question.options.find((o) => o.id === optionId)
-    return await aiPort.generateExplanation(
-      concept.body,
-      question.prompt,
-      selectedOption?.text ?? '',
-      isCorrect
-    )
+    const correctOption = question.options.find((o) => o.id === question.correctOptionId)
+    return await aiPort.generateExplanation({
+      conceptBody: concept.body,
+      questionPrompt: question.prompt,
+      selectedOptionText: selectedOption?.text ?? '',
+      correctOptionText: correctOption?.text ?? '',
+      isCorrect,
+      allOptions: question.options.map((o) => ({ id: o.id, text: o.text })),
+    })
   } catch {
     return question.explanation
   }

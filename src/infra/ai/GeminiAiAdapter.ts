@@ -1,5 +1,8 @@
 // src/infra/ai/GeminiAiAdapter.ts
-import type { AiExplanationPort } from '../../domain/ports/AiExplanationPort.ts'
+import type {
+  AiExplanationPort,
+  GenerateExplanationParams,
+} from '../../domain/ports/AiExplanationPort.ts'
 import { callGemini } from './GeminiApiClient.ts'
 import {
   buildHintPrompt,
@@ -8,7 +11,8 @@ import {
   fallbackExplanation,
 } from './GeminiPromptTemplates.ts'
 
-const DEF_MODEL = 'gemini-3.5-flash-lite'
+const DEF_HINT_MODEL = 'gemini-3.5-flash-lite'
+const DEF_EXPLANATION_MODEL = 'gemini-3.8-flash'
 
 export interface GeminiAiAdapterOptions {
   apiKey?: string
@@ -25,12 +29,17 @@ export class GeminiAiAdapter implements AiExplanationPort {
 
   constructor(options: GeminiAiAdapterOptions = {}) {
     this.apiKey = options.apiKey
-    this.hintModel = options.hintModel || DEF_MODEL
-    this.explanationModel = options.explanationModel || DEF_MODEL
+    this.hintModel = options.hintModel || DEF_HINT_MODEL
+    this.explanationModel = options.explanationModel || DEF_EXPLANATION_MODEL
     this.fetch = options.fetchFn || globalThis.fetch
   }
 
-  private async executePrompt(model: string, prompt: string, tokens: number, fallback: string): Promise<string> {
+  private async executePrompt(
+    model: string,
+    prompt: string,
+    tokens: number,
+    fallback: string
+  ): Promise<string> {
     if (!this.apiKey) return fallback
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`
@@ -43,11 +52,38 @@ export class GeminiAiAdapter implements AiExplanationPort {
 
   async generateHint(conceptBody: string, questionPrompt: string): Promise<string> {
     const prompt = buildHintPrompt(conceptBody, questionPrompt)
-    return this.executePrompt(this.hintModel, prompt, 200, fallbackHint(conceptBody, questionPrompt))
+    return this.executePrompt(this.hintModel, prompt, 500, fallbackHint(conceptBody, questionPrompt))
   }
 
-  async generateExplanation(concept: string, prompt: string, opt: string, correct: boolean): Promise<string> {
-    const text = buildExplanationPrompt(concept, prompt, opt, correct)
-    return this.executePrompt(this.explanationModel, text, 400, fallbackExplanation(concept, prompt, opt, correct))
+  async generateExplanation(params: GenerateExplanationParams): Promise<string>
+  async generateExplanation(
+    concept: string,
+    prompt: string,
+    opt: string,
+    correct: boolean
+  ): Promise<string>
+  async generateExplanation(
+    paramOrConcept: GenerateExplanationParams | string,
+    prompt?: string,
+    opt?: string,
+    correct?: boolean
+  ): Promise<string> {
+    const params: GenerateExplanationParams =
+      typeof paramOrConcept === 'object'
+        ? paramOrConcept
+        : {
+            conceptBody: paramOrConcept,
+            questionPrompt: prompt ?? '',
+            selectedOptionText: opt ?? '',
+            correctOptionText: correct ? (opt ?? '') : '',
+            isCorrect: !!correct,
+          }
+    const text = buildExplanationPrompt(params)
+    return this.executePrompt(
+      this.explanationModel,
+      text,
+      2048,
+      fallbackExplanation(params)
+    )
   }
 }

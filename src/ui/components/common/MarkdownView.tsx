@@ -3,11 +3,11 @@ import Markdown from 'react-markdown'
 import { sanitizeMarkdown } from './markdownHelper.ts'
 
 export interface MarkdownViewProps {
-  content: string
+  content?: string
   className?: string
 }
 
-export function MarkdownView({ content, className = '' }: MarkdownViewProps) {
+export function MarkdownView({ content = '', className = '' }: MarkdownViewProps) {
   const sanitized = sanitizeMarkdown(content)
   if (!sanitized) return null
 

@@ -75,10 +75,14 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
         findByTopicId: async () => [sampleConcept],
       }
 
+      let capturedParams: unknown = null
       const mockAiPort: AiExplanationPort = {
         generateHint: async () => 'hint',
-        generateExplanation: async (_c, _q, _sel, isCorrect) =>
-          `[AI 해설] ${isCorrect ? '정답입니다!' : '오답입니다.'} 2,000만 원 초과 시 종합과세됩니다.`,
+        generateExplanation: async (paramOrConcept, _q, _sel, isCorrect) => {
+          capturedParams = paramOrConcept
+          const correct = typeof paramOrConcept === 'object' ? paramOrConcept.isCorrect : isCorrect
+          return `[AI 해설] ${correct ? '정답입니다!' : '오답입니다.'} 2,000만 원 초과 시 종합과세됩니다.`
+        },
       }
 
       const mockSourceRepo: SourceRepository = {
@@ -117,6 +121,14 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
       assert.equal(savedSession !== null, true)
       assert.equal(savedSession?.isCompleted, true)
       assert.equal(savedSession?.attempts.length, 1)
+      assert.deepEqual(capturedParams, {
+        conceptBody: sampleConcept.body,
+        questionPrompt: sampleQuestion.prompt,
+        selectedOptionText: '연간 2,000만 원 초과',
+        correctOptionText: '연간 2,000만 원 초과',
+        isCorrect: true,
+        allOptions: sampleQuestion.options.map((o) => ({ id: o.id, text: o.text })),
+      })
     })
   })
 
