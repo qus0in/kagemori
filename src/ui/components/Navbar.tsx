@@ -3,10 +3,8 @@ import { useAppStore } from '../store/useAppStore.ts'
 import { DICTIONARY } from '../constants/dictionary.ts'
 
 const NAV_ITEMS = [
-  { to: '/', key: 'counter' as const },
-  { to: '/about', key: 'about' as const },
-  { to: '/catalog', key: 'catalog' as const },
-  { to: '/study', key: 'study' as const },
+  { to: '/', label: DICTIONARY.nav.dday },
+  { to: '/study', label: DICTIONARY.nav.study },
 ]
 
 export function Navbar() {
@@ -16,16 +14,16 @@ export function Navbar() {
   return (
     <nav className="flex justify-between items-center py-4 mb-4 border-b border-base-300">
       <div className="flex items-center gap-4">
-        <Link to="/" className="font-bold text-lg tracking-tight hover:text-primary transition-colors">
+        <Link to="/" className="font-bold text-lg sm:text-xl tracking-tight text-primary hover:opacity-80 transition-opacity">
           {DICTIONARY.common.brandName}
         </Link>
-        <div className="flex gap-2 text-xs font-semibold">
+        <div className="flex gap-2 text-xs sm:text-sm font-semibold">
           {NAV_ITEMS.map((item) => {
             const active = loc.pathname === item.to
-            const cls = active ? 'bg-primary text-white' : 'hover:bg-base-300 text-base-content/70'
+            const cls = active ? 'bg-primary text-white shadow-xs' : 'hover:bg-base-300 text-base-content/70'
             return (
-              <Link key={item.to} to={item.to} className={`px-3 py-1 rounded transition-colors ${cls}`}>
-                {DICTIONARY.nav[item.key]}
+              <Link key={item.to} to={item.to} className={`px-3 py-1.5 rounded-lg transition-colors ${cls}`}>
+                {item.label}
               </Link>
             )
           })}

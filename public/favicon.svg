@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#grad)" />
+  <!-- 방패 실루엣 -->
+  <path d="M16 6 L25 9.5 V16 C25 21.5 16 26 16 26 C16 26 7 21.5 7 16 V9.5 Z" fill="#ffffff" opacity="0.95" />
+  <!-- 상승 화살표 (투자 성장) -->
+  <path d="M16 10 L21 15 H18 V21 H14 V15 H11 Z" fill="#2563eb" />
+</svg>

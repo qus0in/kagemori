@@ -1,11 +1,11 @@
 # 작업 지침
 
-- 제품·기술 결정은 [ADR 0001](docs/adr/0001-investment-manager-dday.md), [0002](docs/adr/0002-textbook-catalog-and-exam-blueprint.md), [0003](docs/adr/0003-adaptive-question-rag-study.md)을 따른다.
+- 제품·기술 결정은 ADR [0001](docs/adr/0001-investment-manager-dday.md), [0002](docs/adr/0002-textbook-catalog-and-exam-blueprint.md), [0003](docs/adr/0003-adaptive-question-rag-study.md), [0004](docs/adr/0004-code-line-limits.md), [0005](docs/adr/0005-brand-touyousha-and-dual-focus-ux.md)를 따른다.
 - 세부 작업은 [`.agents/skills`](.agents/skills)의 단일 책임 모듈화 스킬을 준수한다:
-  - 일정/D-day: [kagemori-schedule](.agents/skills/kagemori-schedule/SKILL.md) (한국 시간 기준)
-  - 풀스택: [cloudflare-workers-vite](.agents/skills/cloudflare-workers-vite/SKILL.md) (로컬 빌드·인증 확인)
-  - 아키텍처/테스트: [clean-architecture-ts](.agents/skills/clean-architecture-ts/SKILL.md), [layered-testing](.agents/skills/layered-testing/SKILL.md)
-  - 교재/RAG: [investment-manager-catalog](.agents/skills/investment-manager-catalog/SKILL.md), [rag-adaptive-study](.agents/skills/rag-adaptive-study/SKILL.md)
+  - 일정/D-day: kagemori-schedule (한국 시간 기준)
+  - 풀스택: cloudflare-workers-vite (로컬 빌드·인증 확인)
+  - 아키텍처/품질: clean-architecture-ts, code-line-limits
+  - 교재/학습/테스트: investment-manager-catalog, rag-adaptive-study, layered-testing
 - 스킬은 `.agents/skills`에 단일 책임·선별 발동 모듈로 작성한다.
 - 패키지 매니저는 `pnpm`을 사용한다.
 - 요구사항 변경 시 ADR을 선행 갱신하고 코드와 문서를 일치시킨다.

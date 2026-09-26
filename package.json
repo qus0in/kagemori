@@ -1,6 +1,6 @@
 {
   "name": "kagemori",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "preview": "NODE_OPTIONS='--disable-warning=DEP0040' vite preview",
     "deploy": "pnpm build && wrangler deploy",
     "check": "tsc -b",
+    "check:lines": "NODE_OPTIONS='--disable-warning=DEP0040' node --experimental-strip-types scripts/check-line-limits.ts",
     "test": "NODE_OPTIONS='--disable-warning=DEP0040' node --test --experimental-strip-types 'test/**/*.test.ts'",
     "test:unit": "NODE_OPTIONS='--disable-warning=DEP0040' node --test --experimental-strip-types 'test/unit/**/*.test.ts'",
     "test:slice": "NODE_OPTIONS='--disable-warning=DEP0040' node --test --experimental-strip-types 'test/slice/**/*.test.ts'",

@@ -1,21 +1,21 @@
 export const commonDict = {
   common: {
-    brandName: 'Kagemori D-day',
-    footerCopyright: '제47회 투자자산운용사 D-Day • Powered by Hono & Cloudflare Workers',
+    brandName: '투자용사',
+    footerCopyright: '투자용사 • 제47회 투자자산운용사 D-day & 문제 풀기',
     themeLight: '☀️ 라이트',
     themeDark: '🌙 다크',
     themeToggleTitle: '테마 변경',
   },
   nav: {
-    counter: '카운터',
-    about: '시험안내',
-    catalog: '교재·출제기준',
+    dday: 'D-day',
     study: '문제 풀기',
+    about: '시험안내',
+    catalog: '출제기준',
   },
   schedule: {
     defaultTitle: '제47회 투자자산운용사',
     badge: 'KOFIA 자격시험',
-    subtitle: '주요 시험 일정 D-day 카운터',
+    subtitle: '시험 일정 D-day',
     syncing: '최신 일정을 동기화하는 중입니다...',
     fallbackAlertPrefix: '서버 연동 알림: 기본 일정을 표시 중입니다.',
     targetDateLabel: '대상 일자',
