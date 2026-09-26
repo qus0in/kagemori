@@ -10,9 +10,10 @@ import { scheduleRoutes, type ScheduleItem, type ScheduleResponse } from './rout
 import { catalogRoutes } from './routes/catalogRoutes.ts'
 import { studySessionRoutes } from './routes/studySessionRoutes.ts'
 import { studyInteractionRoutes } from './routes/studyInteractionRoutes.ts'
+import { StudySessionDO } from './do/StudySessionDO.ts'
 
 export type { Env, ScheduleItem, ScheduleResponse }
-export { getStudyRepo, resetDefaultStudyRepo, getAiAdapter }
+export { getStudyRepo, resetDefaultStudyRepo, getAiAdapter, StudySessionDO }
 
 const app = new Hono<{ Bindings: Env }>()
 

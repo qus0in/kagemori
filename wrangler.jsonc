@@ -13,5 +13,25 @@
       "database_id": "1103832b-f92e-4f4c-87ed-0c5114d6741e",
       "migrations_dir": "migrations"
     }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "STUDY_SESSION_DO",
+        "class_name": "StudySessionDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["StudySessionDO"]
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KAGEMORI_KV",
+      "id": "320efce34fca4937a806633b0099a236"
+    }
   ]
 }
