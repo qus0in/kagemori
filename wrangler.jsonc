@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "kagemori-db",
-      "database_id": "kagemori-local-db",
+      "database_id": "1103832b-f92e-4f4c-87ed-0c5114d6741e",
       "migrations_dir": "migrations"
     }
   ]
