@@ -20,7 +20,7 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
       assert.ok(hint.includes('자본시장법 제3조'))
     })
 
-    it('Given no apiKey, When generateExplanation is called, Then returns rule-based explanation with correctness feedback', async () => {
+    it('Given no apiKey, When generateExplanation is called, Then returns rule-based explanation with concept or question explanation', async () => {
       // Given
       const adapter = new GeminiAiAdapter()
       const conceptBody =
@@ -36,10 +36,10 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
       )
 
       // Then
-      assert.ok(explanation.includes('[정답 해설]'))
-      assert.ok(explanation.includes('장외파생증권'))
+      assert.ok(explanation.includes('자본시장법 제4조'))
+      assert.ok(explanation.includes('증권의 6대 종류'))
     })
-    it('Given no apiKey and incorrect answer params, When generateExplanation is called with object, Then returns structured comparison', async () => {
+    it('Given no apiKey and questionExplanation, When generateExplanation is called with object, Then returns questionExplanation directly without boilerplate', async () => {
       // Given
       const adapter = new GeminiAiAdapter()
 
@@ -50,14 +50,11 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
         selectedOptionText: '투자자문과 동일하게 자문만 제공한다.',
         correctOptionText: '투자판단의 전부 또는 일부를 일임받아 투자자별로 운용한다.',
         isCorrect: false,
+        questionExplanation: '투자일임업은 투자판단을 일임받아 운용하는 업입니다.',
       })
 
       // Then
-      assert.ok(explanation.includes('[오답 해설]'))
-      assert.ok(explanation.includes('### 선택한 선지 분석 (오답 이유)'))
-      assert.ok(explanation.includes('### 정답 선지 해설 (정답 이유)'))
-      assert.ok(explanation.includes('투자자문과 동일하게 자문만 제공한다.'))
-      assert.ok(explanation.includes('투자판단의 전부 또는 일부를 일임받아 투자자별로 운용한다.'))
+      assert.equal(explanation, '투자일임업은 투자판단을 일임받아 운용하는 업입니다.')
     })
   })
 
@@ -74,7 +71,7 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
             candidates: [
               {
                 content: {
-                  parts: [{ text: '### 선택한 정답 선지 확인\n- 맞습니다.' }],
+                  parts: [{ text: '### 핵심 개념 및 정답 근거\n- 맞습니다.' }],
                 },
               },
             ],
@@ -100,11 +97,11 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
         ],
       })
 
-      assert.equal(explanation, '### 선택한 정답 선지 확인\n- 맞습니다.')
+      assert.equal(explanation, '### 핵심 개념 및 정답 근거\n- 맞습니다.')
       assert.ok(capturedUrl.includes('gemini-3.8-flash'))
       assert.equal(capturedBody?.generationConfig?.maxOutputTokens, 2048)
       const promptText = capturedBody?.contents?.[0]?.parts?.[0]?.text || ''
-      assert.ok(promptText.includes('### 선택한 정답 선지 확인'))
+      assert.ok(promptText.includes('[작성 지침 - 정답 시]'))
       assert.ok(promptText.includes('[전체 보기 선지]'))
     })
 

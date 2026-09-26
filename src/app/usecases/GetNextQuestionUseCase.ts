@@ -3,6 +3,7 @@
 import type { PracticeSessionRepository } from '../../domain/ports/PracticeSessionRepository.ts'
 import type { QuestionRepository } from '../../domain/ports/QuestionRepository.ts'
 import type { PublicQuestionDto } from '../dto/StudyDto.ts'
+import type { PracticeSession } from '../../domain/models/PracticeSession.ts'
 
 export class GetNextQuestionUseCase {
   private readonly sessionRepository: PracticeSessionRepository
@@ -22,6 +23,10 @@ export class GetNextQuestionUseCase {
       throw new Error(`Practice session not found: ${sessionId}`)
     }
 
+    return this.executeForSession(session)
+  }
+
+  public async executeForSession(session: PracticeSession): Promise<PublicQuestionDto | null> {
     if (session.isCompleted) {
       return null
     }

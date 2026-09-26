@@ -16,7 +16,7 @@ studyNextQuestionRoute.get('/api/study/session/:sessionId/next', async (c) => {
   }
 
   const useCase = new GetNextQuestionUseCase(repo.sessions, repo.questions)
-  const publicQuestion: PublicQuestionDto | null = await useCase.execute(sessionId)
+  const publicQuestion: PublicQuestionDto | null = await useCase.executeForSession(session)
 
   if (!publicQuestion) {
     return c.json({

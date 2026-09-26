@@ -31,6 +31,15 @@ describe('[Slice / App] Feature: GetNextQuestionUseCase', () => {
   })
 
   describe('Scenario: Fetching next question for an active session', () => {
+    it('Given an already loaded session, When selecting its question, Then performs no additional session read', async () => {
+      const session = new PracticeSession({
+        sessionId: 'loaded', learnerId: 'learner', purpose: 'DIAGNOSTIC', blueprintId: 'bp', targetQuestionCount: 6,
+      })
+      const useCase = new GetNextQuestionUseCase({
+        findById: async () => { throw new Error('Duplicate session read') }, save: async () => {},
+      }, { findById: async () => sampleQuestion, findNextForSession: async () => sampleQuestion })
+      assert.equal((await useCase.executeForSession(session))?.id, sampleQuestion.id)
+    })
     it('Given active session, When execute is called, Then returns PublicQuestionDto with correctOptionId omitted', async () => {
       // Given
       const session = new PracticeSession({

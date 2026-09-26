@@ -49,31 +49,26 @@ export function buildExplanationPrompt(
     ? `\n[전체 보기 선지]:\n${p.allOptions.map((o) => `- ${o.text}`).join('\n')}`
     : ''
   const correctLine = p.correctOptionText ? `\n[실제 정답 선지]: "${p.correctOptionText}"` : ''
+  const refExp = p.questionExplanation ? `\n[공식 교재 해설]:\n${p.questionExplanation}` : ''
 
   const instructions = p.isCorrect
-    ? `[출력 형식 및 지침 - 정답 시]
-반드시 다음 마크다운 헤더와 볼릿 형식을 사용하여 작성하세요:
-### 선택한 정답 선지 확인
-- 선택하신 선지("${p.selectedOptionText}")가 정답인 이유를 관련 법령/개념 조문에 근거하여 명확하게 설명하세요.
-### 핵심 개념 및 출제 포인트
-- 본 문제에서 다루는 핵심 개념 요약과 시험에 자주 출제되는 함정/포인트를 정리하세요.`
-    : `[출력 형식 및 지침 - 오답 시]
-반드시 다음 마크다운 헤더와 볼릿 형식을 사용하여 작성하세요:
-### 선택한 선지 분석 (오답 이유)
-- 응시자가 선택한 선지("${p.selectedOptionText}")가 왜 오답인지 법령/개념 위반 또는 불일치 이유를 명확하게 설명하세요.
-### 정답 선지 해설 (정답 이유)
-- 실제 정답 선지${p.correctOptionText ? `("${p.correctOptionText}")` : ''}가 왜 정답인지 관련 법령/개념을 근거로 명확하게 설명하세요.`
+    ? `[작성 지침 - 정답 시]
+- 화면 상단에 문제 질문과 정답 배지가 이미 표시되어 있으므로, 질문 내용이나 '~는 정답입니다' 같은 형식적인 확인 문구는 절대 다시 쓰지 마세요.
+- 해당 선지가 왜 옳은지 법령 조문, 경제·투자 이론상의 핵심 근거와 수험상 유의할 포인트를 곧바로 담백하게 설명하세요.`
+    : `[작성 지침 - 오답 시]
+- 화면 상단에 문제 질문과 오답 배지가 이미 표시되어 있으므로, 질문 내용이나 '~는 오답입니다' 같은 형식적인 확인 문구는 절대 다시 쓰지 마세요.
+- 응시자가 선택한 선지("${p.selectedOptionText}")의 구체적인 오류/함정 이유와, 실제 정답 선지${p.correctOptionText ? `("${p.correctOptionText}")` : ''}의 정답 근거를 곧바로 명확하게 설명하세요.`
 
   return `당신은 투자자산운용사 자격시험의 전문 강사입니다.
-응시자가 푼 문제와 선택한 선지, 정답 여부를 바탕으로 깊이 있고 정확한 해설을 제공하세요.
+수험생이 문제를 푼 직후 읽는 해설이므로, 질문 복사나 사족 없이 실질적인 수험 핵심 근거만 군더더기 없이 마크다운으로 작성하세요.
 
 [정답 여부]: ${p.isCorrect ? '정답' : '오답'}
 [응시자 선택지]: "${p.selectedOptionText}"${correctLine}${optionsCtx}
 [문제 질문]:
 ${p.questionPrompt}
 
-[관련 개념 및 법령 조문]:
-${p.conceptBody}
+[관련 개념]:
+${p.conceptBody}${refExp}
 
 ${instructions}`
 }
@@ -97,23 +92,8 @@ export function fallbackExplanation(
   isCorrect?: boolean
 ): string {
   const p = normalizeExplanationParams(paramsOrConcept, questionPrompt, selectedOptionText, isCorrect)
-  if (p.isCorrect) {
-    return `[정답 해설]
-### 선택한 정답 선지 확인
-- 선택하신 선지 "${p.selectedOptionText}"은(는) 정답입니다.
-
-### 핵심 개념 및 출제 포인트
-- 관련 기준: ${p.conceptBody}
-- 질문: ${p.questionPrompt}`
+  if (p.questionExplanation) {
+    return p.questionExplanation
   }
-
-  const correctLine = p.correctOptionText
-    ? `\n### 정답 선지 해설 (정답 이유)\n- 실제 정답: "${p.correctOptionText}"\n`
-    : '\n'
-
-  return `[오답 해설]
-### 선택한 선지 분석 (오답 이유)
-- 선택하신 선지 "${p.selectedOptionText}"은(는) 오답입니다.
-${correctLine}- 관련 기준: ${p.conceptBody}
-- 질문: ${p.questionPrompt}`
+  return p.conceptBody
 }

@@ -29,7 +29,7 @@ export const useStudySession = create<StudySessionState>((set, get) => ({
 
   startSession: (purpose, targetCount) => {
     set({ ...initialStudyState })
-    return executeStartSession(defaultRepo, set, purpose, targetCount)
+    return executeStartSession(defaultRepo, set, get, purpose, targetCount)
   },
 
   selectOption: (optionId: string) => {

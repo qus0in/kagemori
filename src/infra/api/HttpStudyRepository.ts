@@ -1,5 +1,5 @@
 // src/infra/api/HttpStudyRepository.ts
-import ky from 'ky'
+import ky, { TimeoutError } from 'ky'
 import type { SessionPurpose } from '../../domain/models/PracticeSession.ts'
 import type { PublicQuestionDto, SubmitAnswerResponseDto, ConceptHintResponseDto } from '../../app/dto/StudyDto.ts'
 import { createComponentLogger } from '../logger/logger.ts'
@@ -34,10 +34,17 @@ export class HttpStudyRepository implements HttpStudyRepositoryContract {
 
   public async getNextQuestion(sessionId: string): Promise<PublicQuestionDto | null> {
     try {
-      const res = await this.http.get(`${this.url}/session/${sessionId}/next`, { timeout: 10000 }).json<any>()
-      return res?.completed ? null : res
+      const res = await this.http.get(`${this.url}/session/${sessionId}/next`, {
+        timeout: 10000,
+        totalTimeout: 22000,
+        retry: { limit: 1, methods: ['get'], retryOnTimeout: true },
+      }).json<PublicQuestionDto | { completed: true }>()
+      return 'completed' in res ? null : res
     } catch (err) {
       this.log.error({ err, sessionId }, 'Failed to fetch next question')
+      if (err instanceof TimeoutError) {
+        throw new Error('문제 조회가 지연되고 있어요. 풀이 기록은 유지됩니다. 다시 불러오기를 눌러 주세요.')
+      }
       throw err
     }
   }

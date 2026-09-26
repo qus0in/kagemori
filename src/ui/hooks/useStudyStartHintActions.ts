@@ -8,20 +8,27 @@ type GetFn = () => StudySessionState
 export async function executeStartSession(
   repo: HttpStudyRepositoryContract,
   set: SetFn,
+  get: GetFn,
   purpose: SessionPurpose,
   targetCount?: number,
 ): Promise<void> {
   set({ isLoadingQuestion: true, error: null })
+  const startingState = get()
+  let activeSession: StudySessionState['session'] = null
   try {
     const session = await repo.createSession(purpose, targetCount)
+    if (get() !== startingState) return
+    activeSession = session
     set({ session })
     const question = await repo.getNextQuestion(session.sessionId)
+    if (get().session !== session) return
     if (!question) {
       set({ isCompleted: true, isLoadingQuestion: false })
       return
     }
     set({ currentQuestion: question, questionStartTime: Date.now(), isLoadingQuestion: false })
   } catch (err) {
+    if (activeSession ? get().session !== activeSession : get() !== startingState) return
     const msg = err instanceof Error ? err.message : '세션을 생성하는 데 실패했습니다.'
     set({ error: msg, isLoadingQuestion: false })
   }

@@ -21,6 +21,13 @@ export function StudyActiveSection({ store }: StudyActiveSectionProps) {
         totalQuestions={session.targetQuestionCount}
       />
 
+      {store.error && !isLoadingQuestion && (!currentQuestion || feedback) && (
+        <button type="button" className="btn btn-outline btn-primary btn-sm" onClick={store.nextQuestion}>문제 다시 불러오기</button>
+      )}
+      {isLoadingQuestion && currentQuestion && (
+        <p role="status" className="text-sm text-base-content/70">다음 문제를 불러오는 중이에요…</p>
+      )}
+
       {isLoadingQuestion && !currentQuestion && (
         <div className="card bg-base-100 border border-base-300 p-12 text-center shadow-xs">
           <span className="loading loading-spinner loading-md text-primary mx-auto mb-3"></span>

@@ -128,6 +128,7 @@ describe('[Slice / App] Feature: SubmitAnswerUseCase', () => {
         correctOptionText: '연간 2,000만 원 초과',
         isCorrect: true,
         allOptions: sampleQuestion.options.map((o) => ({ id: o.id, text: o.text })),
+        questionExplanation: sampleQuestion.explanation,
       })
     })
   })

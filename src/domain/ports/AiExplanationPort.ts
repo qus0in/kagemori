@@ -7,6 +7,7 @@ export interface GenerateExplanationParams {
   correctOptionText: string
   isCorrect: boolean
   allOptions?: Array<{ id: string; text: string }>
+  questionExplanation?: string
 }
 
 export interface AiExplanationPort {

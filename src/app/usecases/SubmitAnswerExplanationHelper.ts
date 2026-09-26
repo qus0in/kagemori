@@ -23,6 +23,7 @@ export async function resolveAnswerExplanation(
       correctOptionText: correctOption?.text ?? '',
       isCorrect,
       allOptions: question.options.map((o) => ({ id: o.id, text: o.text })),
+      questionExplanation: question.explanation,
     })
   } catch {
     return question.explanation
