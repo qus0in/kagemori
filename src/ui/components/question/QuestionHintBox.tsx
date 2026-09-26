@@ -1,5 +1,6 @@
 import type { ConceptHintResponseDto } from '../../../app/dto/StudyDto.ts'
 import { DICTIONARY } from '../../constants/dictionary.ts'
+import { MarkdownView } from '../common/MarkdownView.tsx'
 
 export interface QuestionHintBoxProps {
   hint: ConceptHintResponseDto | null
@@ -21,9 +22,7 @@ export function QuestionHintBox({ hint, isHintLoading, onRequestHint }: Question
                 <span className="text-xs badge badge-info badge-outline">{hint.conceptTitle}</span>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-base-content/90 leading-relaxed">
-              {hint.hintText || hint.hint}
-            </p>
+            <MarkdownView content={hint.hintText || hint.hint} />
             {hint.sourceTitle && (
               <div className="text-xs text-base-content/60 pt-1">
                 출처: {hint.sourceTitle}

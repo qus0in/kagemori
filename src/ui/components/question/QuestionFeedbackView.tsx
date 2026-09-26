@@ -1,6 +1,7 @@
 import type { SubmitAnswerResponseDto } from '../../../app/dto/StudyDto.ts'
 import { DICTIONARY } from '../../constants/dictionary.ts'
 import { QuestionFeedbackSource } from './QuestionFeedbackSource.tsx'
+import { MarkdownView } from '../common/MarkdownView.tsx'
 
 export interface QuestionFeedbackViewProps {
   feedback: SubmitAnswerResponseDto
@@ -27,9 +28,7 @@ export function QuestionFeedbackView({ feedback, onNextQuestion }: QuestionFeedb
           )}
         </div>
 
-        <div className="text-sm text-base-content/90 whitespace-pre-line leading-relaxed mb-3">
-          {feedback.explanation}
-        </div>
+        <MarkdownView content={feedback.explanation} className="mb-3" />
 
         <QuestionFeedbackSource
           sourceTitle={feedback.sourceTitle}
