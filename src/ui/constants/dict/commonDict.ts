@@ -1,7 +1,7 @@
 export const commonDict = {
   common: {
     brandName: '투자용사',
-    footerCopyright: '투자용사 • 제47회 투자자산운용사 D-day & 문제 풀기',
+    footerCopyright: '투자용사 • 제47회 투자자산운용사 시험 준비',
     themeLight: '☀️ 라이트',
     themeDark: '🌙 다크',
     themeToggleTitle: '테마 변경',
