@@ -2,9 +2,12 @@
 import { commonDict } from './dict/commonDict.ts'
 import { catalogDict } from './dict/catalogDict.ts'
 import { studyDict } from './dict/studyDict.ts'
+import { mainDict } from './dict/mainDict.ts'
 
 export const DICTIONARY = {
   ...commonDict,
   catalog: catalogDict,
   study: studyDict,
+  main: mainDict,
 } as const
+

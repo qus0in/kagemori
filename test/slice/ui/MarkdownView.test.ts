@@ -83,3 +83,33 @@ describe('[Slice / UI] Feature: MarkdownView tables and math', () => {
     })
   })
 })
+
+describe('[Slice / UI] Feature: Model-emitted line breaks', () => {
+  describe('Scenario: Raw <br> tags become real line breaks', () => {
+    for (const tag of ['<br>', '<br/>', '<br />', '<BR>']) {
+      it(`Given ${tag} in prose, When rendered, Then emits a real break and no literal tag`, () => {
+        const html = render(`첫 줄${tag}둘째 줄`)
+        assert.ok(html.includes('<br/>'))
+        assert.ok(!html.includes('&lt;br'))
+      })
+    }
+
+    it('Given <br> inside a GFM table cell, When rendered, Then breaks within the cell', () => {
+      const html = render('| a | b |\n| :- | :- |\n| x<br>y | z<BR>w |')
+      assert.ok(html.includes('<td style="text-align:left">x<br/>'))
+      assert.ok(html.includes('z<br/>'))
+      assert.ok(!html.includes('&lt;br'))
+    })
+
+    it('Given <br> in inline or fenced code, When rendered, Then keeps it literal', () => {
+      assert.ok(render('`a<br>b`').includes('<code>a&lt;br&gt;b</code>'))
+      assert.ok(render('```\na<br>b\n```').includes('a&lt;br&gt;b'))
+    })
+
+    it('Given raw HTML next to a break, When rendered, Then still disables the raw HTML', () => {
+      const html = render('<img src=x onerror=alert(1)><br>safe')
+      assert.ok(!html.includes('<img'))
+      assert.ok(html.includes('<br/>'))
+    })
+  })
+})

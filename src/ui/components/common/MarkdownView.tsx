@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import { sanitizeMarkdown } from './markdownHelper.ts'
+import { remarkBrAsBreak } from './remarkBrAsBreak.ts'
 
 export interface MarkdownViewProps {
   content?: string
@@ -33,7 +34,7 @@ export function MarkdownView({ content = '', className = '' }: MarkdownViewProps
         [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
         ${className}`}
     >
-      <Markdown remarkPlugins={[remarkCjkFriendly, remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}
+      <Markdown remarkPlugins={[remarkCjkFriendly, remarkGfm, remarkMath, remarkBrAsBreak]} rehypePlugins={[rehypeKatex]}
         components={{ table: ({ node: _node, ...props }) => <div className="overflow-x-auto"><table {...props} /></div> }}>
         {sanitized}
       </Markdown>
