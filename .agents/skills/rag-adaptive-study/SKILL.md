@@ -6,6 +6,7 @@ description: Implement and maintain RAG concept explanation, adaptive multiple-c
 # RAG & Adaptive Study Skill
 
 - 작업 전 [ADR 0003](../../../docs/adr/0003-adaptive-question-rag-study.md) 및 [학습 설계](../../../docs/plans/rag-question-study-design.md)를 필독한다.
+- **학습 질답(설계 제안·미구현)**: 플로팅 챗봇 작업은 [ADR 0007](../../../docs/adr/0007-study-history-chat.md)과 [질답 설계](../../../docs/plans/study-history-chat-design.md)를 따른다. D1 통계와 문항 의미 검색을 분리하며, 서버 공개 정책·DO 미반영 답안 병합·버전 대조를 선행한다. 미제출 정답 및 진행 중 시험 점검의 질답을 차단한다.
 - **학습 인터랙션 원칙**: 화면과 API는 1회 1문항 원칙을 고수하며, 제출 전 정답을 클라이언트에 노출하지 않는다.
 - **조회 실패 복구**: 다음 문제를 받기 전 해설·선택을 지우지 않는다. 첫 조회 실패도 같은 세션에서 재시도하며, 중복 요청과 초기화 후 늦은 응답을 차단한다. `/next` GET의 제한된 재시도 정책을 제출 POST에 적용하지 않는다. 다음 문제 조회 중에는 카드를 반투명·`inert`로 고정하고 스피너를 겹친다.
 - **모델 사용 현황(코드 기준, ADR 0003 표)**: 힌트·일반 해설 `gemini-3.5-flash-lite` → `gemma-4-26b-a4b-it` 품질 검토 → 미달/실패 시 `gemini-3.8-flash` 보정(`ReviewedTextClient`), 사용자 해설 재요청은 3.8 직행(`GeminiAiAdapter`), 출제·1차 검수 `gemini-3.8-flash`(`GeminiQuestionAuthor`), 초안 선별·쟁점 태깅 `gemma-4-26b-a4b-it`, 교차 블라인드 검수 `gemma-4-31b-it`(`GemmaQuestionModels`), 의미 중복·약점 유사 `gemini-embedding-2` 768차원(`GeminiEmbeddingAdapter` + Vectorize), 풀이 후 개념 도식 `gemini-3.1-flash-image`(Nano Banana 2, `GeminiDiagramAdapter`, 모델별 KV 캐시). Gemma는 JSON 모드 없이 `parseModelJsonList`로 파싱한다. 출제 보조 모델 실패는 해당 단계만 건너뛰고, 실시간 품질 검토 실패는 3.8로 승격한다.

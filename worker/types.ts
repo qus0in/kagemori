@@ -22,6 +22,7 @@ export type Env = {
   STORAGE_MODE?: 'persistent' | 'local'
   DB?: D1Database
   GEMINI_API_KEY?: string
+  CHAT_ANSWER?: { execute(request: { model: string; prompt: string; tokens: number; escalate?: boolean }): Promise<string | null> }
   STUDY_SESSION_DO?: DurableObjectNamespaceLike
   KAGEMORI_KV?: CloudflareKvBinding
   STUDY_REPO?: StudyRepository

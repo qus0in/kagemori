@@ -4,6 +4,7 @@ import { SubmitAnswerUseCase } from '../../src/app/usecases/SubmitAnswerUseCase.
 import type { SubmitAnswerRequestDto } from '../../src/app/dto/StudyDto.ts'
 import { type Env, getStudyRepo, getAiAdapter } from '../types.ts'
 import { SessionConflictError, StorageUnavailableError } from '../../src/domain/models/StorageErrors.ts'
+import { D1StudyHistory } from '../../src/infra/d1/D1StudyHistory.ts'
 
 export const studySubmitRoute = new Hono<{ Bindings: Env }>()
 
@@ -27,6 +28,9 @@ studySubmitRoute.post('/api/study/session/:sessionId/submit', async (c) => {
       hintUsed: Boolean(body.hintUsed),
       durationMs: Number(body.durationMs) || 0,
     })
+
+    const updated = await repo.sessions.findById(sessionId)
+    if (updated && c.env?.DB) await new D1StudyHistory(c.env.DB).registerSession(sessionId, updated.purpose, updated.isCompleted)
 
     return c.json({ ...res, aiExplanation: res.explanation })
   } catch (err: unknown) {

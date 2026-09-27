@@ -5,7 +5,7 @@ import type { DurableObjectState, SessionStorage } from '../../worker/do/StudySe
 
 export function sqliteD1() {
   const sqlite = new DatabaseSync(':memory:')
-  for (const name of ['0001_create_catalog_schema.sql', '0002_seed_2026_catalog.sql', '0003_study_history.sql', '0004_generated_questions.sql', '0005_question_semantics.sql', '0006_generated_question_tier.sql']) {
+  for (const name of ['0001_create_catalog_schema.sql', '0002_seed_2026_catalog.sql', '0003_study_history.sql', '0004_generated_questions.sql', '0005_question_semantics.sql', '0006_generated_question_tier.sql', '0007_study_chat.sql']) {
     sqlite.exec(readFileSync(new URL(`../../migrations/${name}`, import.meta.url), 'utf8'))
   }
   function prepare(sql: string, values: (string | number | null)[] = []) {
@@ -13,7 +13,7 @@ export function sqliteD1() {
       bind: (...bound: (string | number | null)[]) => prepare(sql, bound),
       first: async () => sqlite.prepare(sql).get(...values) ?? null,
       all: async () => ({ success: true, results: sqlite.prepare(sql).all(...values) }),
-      run: () => sqlite.prepare(sql).run(...values),
+      run: async () => ({ success: true, ...sqlite.prepare(sql).run(...values) }),
     }
   }
   // D1 accepts concurrent batches; SQLite cannot nest transactions, so queue them.

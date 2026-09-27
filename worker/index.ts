@@ -13,6 +13,7 @@ import { studyInteractionRoutes } from './routes/studyInteractionRoutes.ts'
 import { StudySessionDO } from './do/StudySessionDO.ts'
 import { studyCoverageRoute } from './routes/studyCoverageRoute.ts'
 import { storageErrorHandler } from './storageErrorHandler.ts'
+import { studyChatRoute } from './routes/studyChatRoute.ts'
 
 export type { Env, ScheduleItem, ScheduleResponse }
 export { getStudyRepo, resetDefaultStudyRepo, getAiAdapter, StudySessionDO }
@@ -26,5 +27,6 @@ app.route('/', catalogRoutes)
 app.route('/', studySessionRoutes)
 app.route('/', studyInteractionRoutes)
 app.route('/', studyCoverageRoute)
+app.route('/', studyChatRoute)
 
 export default app

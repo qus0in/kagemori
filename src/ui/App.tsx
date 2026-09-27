@@ -7,6 +7,7 @@ import { AboutPage } from './pages/AboutPage.tsx'
 import { CatalogPage } from './pages/CatalogPage.tsx'
 import { StudyPage } from './pages/StudyPage.tsx'
 import { DICTIONARY } from './constants/dictionary.ts'
+import { StudyChatWidget } from './components/study/StudyChatWidget.tsx'
 
 export function App() {
   const [queryClient] = useState(
@@ -24,6 +25,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <StudyChatWidget />
         <div className="min-h-screen bg-base-200 text-base-content flex flex-col justify-between p-4 sm:p-8 overflow-x-hidden">
           <div className="max-w-3xl mx-auto w-full min-w-0">
             <Navbar />

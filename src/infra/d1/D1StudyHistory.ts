@@ -62,4 +62,34 @@ export class D1StudyHistory implements StudyHistoryPort {
       hintUsed: Boolean(row.hint_used), answeredAt: row.answered_at,
     }))
   }
+
+  async chatHistory(): Promise<{ questionId: string; topicId: string; questionVersion: number; isCorrect: boolean; hintUsed: boolean; answeredAt: string; sessionId: string }[]> {
+    try {
+      const result = await withStorageDeadline(this.db.prepare(`SELECT session_id, question_id, topic_id, question_version, is_correct, hint_used, answered_at
+        FROM study_attempts ORDER BY answered_at DESC`).all<{
+        session_id: string; question_id: string; topic_id: string; question_version: number; is_correct: number; hint_used: number; answered_at: string
+      }>(), 'D1')
+      if (!result.success) throw new Error('Chat history query failed')
+      return result.results.map((row) => ({ sessionId: row.session_id, questionId: row.question_id, topicId: row.topic_id,
+        questionVersion: row.question_version, isCorrect: Boolean(row.is_correct), hintUsed: Boolean(row.hint_used), answeredAt: row.answered_at }))
+    } catch (cause) { throw new StorageUnavailableError('D1', { cause }) }
+  }
+
+  async registerSession(sessionId: string, purpose: string, completed: boolean): Promise<void> {
+    try {
+      const result = await withStorageDeadline(this.db.prepare(`INSERT INTO study_session_status(session_id,purpose,is_completed,updated_at)
+        VALUES(?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET is_completed=excluded.is_completed,updated_at=excluded.updated_at`)
+        .bind(sessionId, purpose, Number(completed), new Date().toISOString()).run(), 'D1')
+      if (!result.success) throw new Error('Session status update failed')
+    } catch (cause) { throw new StorageUnavailableError('D1', { cause }) }
+  }
+
+  async hasActiveSession(): Promise<boolean> {
+    try {
+      const result = await withStorageDeadline(this.db.prepare(`SELECT 1 AS active FROM study_session_status
+        WHERE is_completed=0 AND updated_at >= datetime('now','-24 hours') LIMIT 1`)
+        .first<{ active: number }>(), 'D1')
+      return Boolean(result)
+    } catch (cause) { throw new StorageUnavailableError('D1', { cause }) }
+  }
 }

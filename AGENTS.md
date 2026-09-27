@@ -1,6 +1,6 @@
 # 작업 지침
 
-- 제품·기술 결정은 ADR [0001](docs/adr/0001-investment-manager-dday.md) ~ [0006](docs/adr/0006-cloudflare-durable-objects-and-kv-session-architecture.md)을 따른다.
+- 제품·기술 결정은 ADR [0001](docs/adr/0001-investment-manager-dday.md) ~ [0007](docs/adr/0007-study-history-chat.md)을 따른다.
 - 세부 작업은 [`.agents/skills`](.agents/skills)의 단일 책임 모듈화 스킬을 준수한다:
   - 일정/D-day: kagemori-schedule, 풀스택: cloudflare-workers-vite
   - 아키텍처/품질: clean-architecture-ts, code-line-limits

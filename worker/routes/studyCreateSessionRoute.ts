@@ -7,6 +7,7 @@ import type {
 } from '../../src/app/dto/StudyDto.ts'
 import { type Env, getStudyRepo } from '../types.ts'
 import { getSessionCreator } from '../studySessionFactory.ts'
+import { D1StudyHistory } from '../../src/infra/d1/D1StudyHistory.ts'
 
 export const studyCreateSessionRoute = new Hono<{ Bindings: Env }>()
 
@@ -22,6 +23,7 @@ studyCreateSessionRoute.post('/api/study/session', async (c) => {
 
   const repo = getStudyRepo(c.env, c.env?.STUDY_SESSION_DO ? (task) => c.executionCtx.waitUntil(task) : undefined)
   const session = await getSessionCreator(c.env, repo).execute(purpose, body.targetCount)
+  if (c.env?.DB) await new D1StudyHistory(c.env.DB).registerSession(session.sessionId, purpose, session.isCompleted)
 
   const response: CreateSessionResponseDto = {
     sessionId: session.sessionId,
