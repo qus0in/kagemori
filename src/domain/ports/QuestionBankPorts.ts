@@ -18,6 +18,8 @@ export interface GeneratedQuestionStore {
 export interface QuestionBankPort {
   /** Every question that may be planned: fixed seed plus reviewed AI questions. */
   listQuestions(): Promise<Question[]>
+  /** Reviewed AI questions with their verification tier. */
+  listGenerated(): Promise<GeneratedQuestionRecord[]>
   saveGenerated(records: readonly GeneratedQuestionRecord[]): Promise<void>
 }
 

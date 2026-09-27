@@ -3,7 +3,7 @@ import type { PracticeSession, SessionPurpose } from '../../domain/models/Practi
 import { DEFAULT_SESSION_QUESTION_COUNTS } from '../../domain/models/PracticeSessionTypes.ts'
 import { needsReview, planSessionQuestions, type QuestionHistoryEntry } from '../../domain/models/QuestionPlanning.ts'
 import type { Question } from '../../domain/models/Question.ts'
-import { isGeneratedQuestionId } from '../../domain/models/GeneratedQuestion.ts'
+import { selectMockExamPool } from '../../domain/models/MockExamPool.ts'
 import type { StudyRepository } from '../../domain/ports/StudyRepository.ts'
 import type { QuestionBankPort, StudyHistoryPort } from '../../domain/ports/QuestionBankPorts.ts'
 import { FIRST_GENERATED_SLOT, GENERATION_WAIT_MS, type GenerationPlan } from '../../domain/models/SessionGeneration.ts'
@@ -55,11 +55,23 @@ export class CreateStudySessionUseCase {
     return this.deps.semantic.relatedTo(recentReview.map((e) => e.questionId), new Set(pool.filter((q) => !answered.has(q.id)).map((q) => q.id)))
   }
 
+  /** IDs of fully verified AI questions; a failed lookup must never break exam creation. */
+  private async verifiedIds(): Promise<ReadonlySet<string>> {
+    try {
+      const records = await this.deps.bank.listGenerated()
+      return new Set(records.filter((record) => record.tier === 'VERIFIED').map((record) => record.question.id))
+    } catch (error) {
+      this.warn('Generated question tiers unavailable', error)
+      return new Set()
+    }
+  }
+
   async execute(purpose: SessionPurpose, targetCount?: number): Promise<PracticeSession> {
     const count = targetCount && targetCount > 0 ? Math.min(Math.floor(targetCount), 100) : DEFAULT_SESSION_QUESTION_COUNTS[purpose]
     const seed = this.deps.shuffleSeed?.() ?? crypto.randomUUID()
     const mockExam = purpose === 'MOCK_EXAM'
-    const pool = (await this.deps.bank.listQuestions()).filter((q) => !mockExam || !isGeneratedQuestionId(q.id))
+    const all = await this.deps.bank.listQuestions()
+    const pool = mockExam ? selectMockExamPool(all, await this.verifiedIds(), count, seed) : all
     const history = await this.loadHistory()
     const boost = await this.weakSpotBoost(purpose, pool, history)
     const plan = planSessionQuestions(pool, history, count, seed, boost)

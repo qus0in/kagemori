@@ -63,4 +63,8 @@ export class InMemoryQuestionRepository implements QuestionRepository, QuestionB
   async saveGenerated(records: readonly GeneratedQuestionRecord[]): Promise<void> {
     await this.generated.save(records)
   }
+
+  async listGenerated(): Promise<GeneratedQuestionRecord[]> {
+    return this.generated.list()
+  }
 }

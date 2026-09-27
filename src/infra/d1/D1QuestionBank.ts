@@ -10,7 +10,7 @@ import { withStorageDeadline } from '../storage/withStorageDeadline.ts'
 interface Row {
   id: string; topic_id: string; topic_title: string; chapter_id: string; type: string; difficulty: string
   prompt: string; options_json: string; correct_option_id: string; explanation: string; basis: string
-  generator_model: string; reviewer_model: string; review_notes: string; created_at: string; issue: string
+  generator_model: string; reviewer_model: string; review_notes: string; created_at: string; issue: string; tier: string
 }
 
 function toRecord(row: Row): GeneratedQuestionRecord {
@@ -24,6 +24,7 @@ function toRecord(row: Row): GeneratedQuestionRecord {
     }),
     topicTitle: row.topic_title, basis: row.basis, issue: row.issue ?? '', generatorModel: row.generator_model,
     reviewerModel: row.reviewer_model, reviewNotes: row.review_notes, createdAt: row.created_at,
+    tier: row.tier === 'VERIFIED' ? 'VERIFIED' : 'REVIEWED',
   }
 }
 
@@ -52,10 +53,10 @@ export class D1QuestionBank implements GeneratedQuestionStore {
   async save(records: readonly GeneratedQuestionRecord[]): Promise<void> {
     const statements = records.map(({ question: q, ...meta }) => this.db.prepare(`INSERT INTO generated_questions
       (id, topic_id, topic_title, chapter_id, type, difficulty, prompt, options_json, correct_option_id,
-       explanation, basis, generator_model, reviewer_model, review_notes, created_at, issue)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`).bind(
+       explanation, basis, generator_model, reviewer_model, review_notes, created_at, issue, tier)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`).bind(
       q.id, q.topicId, meta.topicTitle, q.chapterId, q.type, q.difficulty, q.prompt, JSON.stringify(q.options),
-      q.correctOptionId, q.explanation, meta.basis, meta.generatorModel, meta.reviewerModel, meta.reviewNotes, meta.createdAt, meta.issue,
+      q.correctOptionId, q.explanation, meta.basis, meta.generatorModel, meta.reviewerModel, meta.reviewNotes, meta.createdAt, meta.issue, meta.tier,
     ))
     if (!statements.length) return
     const results = await this.run(this.db.batch(statements))

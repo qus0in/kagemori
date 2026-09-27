@@ -38,6 +38,8 @@ function fakeEmbedder(): EmbeddingPort & { calls: number } {
 
 const approveAll = (model: string): BlindReviewPort => ({ model, review: async (items) => items.map((d, index) => ({ index, solvedIndex: d.correctIndex, approved: true, issues: '' })) })
 const answeredSeeds: QuestionHistoryEntry[] = SEED_QUESTIONS.map((q) => ({ questionId: q.id, topicId: q.topicId, isCorrect: true, hintUsed: false, answeredAt: '2026-09-01T00:00:00Z' }))
+const keepAll: DraftScreenPort = { model: 'gemma-4-26b-a4b-it', screen: async (items) => items.map((_, index) => ({ index, keep: true, issue: 'PER' })) }
+const tierOf = async ({ repo }: ReturnType<typeof setup>) => (await repo.questions.listGenerated())[0]?.tier
 
 function setup(drafts: QuestionDraft[], opts: { screener?: DraftScreenPort; reviewers?: BlindReviewPort[]; history?: QuestionHistoryEntry[] } = {}) {
   const repo = new InMemoryStudyRepository()
@@ -103,5 +105,23 @@ describe('[Slice / App] Feature: Embedding, Gemma and cross-review pipeline', ()
     await index.upsert([{ id: wrongId, topicId: 't', values: [1, 0, 0] }, { id: target.id, topicId: 't', values: [0.95, 0.05, 0] }])
     const session = await useCase.execute('IMPROVEMENT', 6)
     assert.equal(session.questionIds?.[0], target.id)
+  })
+
+  it('Given review, screening and dedupe all pass, When replenishing, Then the question is VERIFIED', async () => {
+    const result = setup([draft(1)], { reviewers: [approveAll('gemini-3.8-flash'), approveAll('gemma-4-31b-it')], screener: keepAll })
+    await result.useCase.execute('DIAGNOSTIC', 3)
+    assert.equal(await tierOf(result), 'VERIFIED')
+  })
+
+  it('Given only the primary reviewer responds, When replenishing, Then the question is REVIEWED', async () => {
+    const result = setup([draft(1)], { screener: keepAll })
+    await result.useCase.execute('DIAGNOSTIC', 3)
+    assert.equal(await tierOf(result), 'REVIEWED')
+  })
+
+  it('Given screening is skipped, When replenishing, Then the question is REVIEWED', async () => {
+    const result = setup([draft(1)], { reviewers: [approveAll('gemini-3.8-flash'), approveAll('gemma-4-31b-it')] })
+    await result.useCase.execute('DIAGNOSTIC', 3)
+    assert.equal(await tierOf(result), 'REVIEWED')
   })
 })

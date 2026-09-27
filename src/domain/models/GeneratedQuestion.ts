@@ -7,6 +7,16 @@ import { seededShuffle } from './QuestionPlanning.ts'
 export const GENERATED_QUESTION_PREFIX = 'gq-'
 const GENERATED_CONCEPT_PREFIX = 'gc-'
 
+/**
+ * VERIFIED requires every automated gate to have actually run and passed:
+ * unanimous cross-model blind review, draft screening and embedding dedupe.
+ */
+export type GeneratedQuestionTier = 'REVIEWED' | 'VERIFIED'
+
+export function tierOfReview(passed: boolean, crossReviewed: boolean, screened: boolean, dedupeChecked: boolean): GeneratedQuestionTier {
+  return passed && crossReviewed && screened && dedupeChecked ? 'VERIFIED' : 'REVIEWED'
+}
+
 export interface QuestionDraft {
   readonly topicId: string
   readonly chapterId: string
@@ -31,6 +41,7 @@ export interface GeneratedQuestionRecord {
   readonly reviewerModel: string
   readonly reviewNotes: string
   readonly createdAt: string
+  readonly tier: GeneratedQuestionTier
 }
 
 export const isGeneratedQuestionId = (id: string) => id.startsWith(GENERATED_QUESTION_PREFIX)

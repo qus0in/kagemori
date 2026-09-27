@@ -4,7 +4,7 @@ import type { QuestionHistoryEntry } from '../../domain/models/QuestionPlanning.
 import { allocateTopics } from '../../domain/models/TopicAllocation.ts'
 import { questionEmbeddingText } from '../../domain/models/VectorMath.ts'
 import {
-  buildGeneratedQuestion, normalizePrompt, GENERATED_QUESTION_PREFIX,
+  buildGeneratedQuestion, normalizePrompt, GENERATED_QUESTION_PREFIX, tierOfReview,
   type GeneratedQuestionRecord, type QuestionDraft,
 } from '../../domain/models/GeneratedQuestion.ts'
 import type {
@@ -50,27 +50,35 @@ export class ReplenishQuestionBankUseCase {
   constructor(deps: ReplenishDeps) { this.deps = deps }
   private get warn(): Warn { return this.deps.warn ?? ((m, d) => console.warn(m, d)) }
 
-  private async screen(drafts: QuestionDraft[], request: AuthoringRequest): Promise<QuestionDraft[]> {
-    if (!this.deps.screener || !drafts.length) return drafts
+  private async screen(drafts: QuestionDraft[], request: AuthoringRequest): Promise<{ drafts: QuestionDraft[]; screened: boolean[] }> {
+    const skipped = { drafts, screened: drafts.map(() => false) }
+    if (!this.deps.screener || !drafts.length) return skipped
     try {
       const verdicts = await this.deps.screener.screen(drafts, request)
-      return drafts.flatMap((draft, index) => {
+      const kept: { draft: QuestionDraft; screened: boolean }[] = drafts.flatMap((draft, index) => {
         const verdict = verdicts.find((v) => v.index === index)
-        return verdict?.keep === false ? [] : [{ ...draft, issue: verdict?.issue.trim() ?? '' }]
+        return verdict?.keep === false ? [] : [{ draft: { ...draft, issue: verdict?.issue.trim() ?? '' }, screened: !!verdict }]
       })
+      return { drafts: kept.map((k) => k.draft), screened: kept.map((k) => k.screened) }
     } catch (error) {
       this.warn('Draft screening skipped', { error: String(error) })
-      return drafts
+      return skipped
     }
   }
 
   private async dedupe(drafts: QuestionDraft[], pool: readonly Question[]) {
-    if (!this.deps.semantic || !drafts.length) return { drafts, vectors: null as number[][] | null }
-    await this.deps.semantic.ensureIndexed(pool)
-    const { duplicate, vectors } = await this.deps.semantic.findDuplicates(drafts.map((d) => ({
-      topicId: d.topicId, text: questionEmbeddingText(d.prompt, d.options[d.correctIndex]),
-    })))
-    return { drafts: drafts.filter((_, i) => !duplicate[i]), vectors: vectors?.filter((_, i) => !duplicate[i]) ?? null }
+    const skipped = { drafts, vectors: null as number[][] | null, checked: false }
+    if (!this.deps.semantic || !drafts.length) return skipped
+    try {
+      await this.deps.semantic.ensureIndexed(pool)
+      const { duplicate, vectors } = await this.deps.semantic.findDuplicates(drafts.map((d) => ({
+        topicId: d.topicId, text: questionEmbeddingText(d.prompt, d.options[d.correctIndex]),
+      })))
+      return { drafts: drafts.filter((_, i) => !duplicate[i]), vectors: vectors?.filter((_, i) => !duplicate[i]) ?? null, checked: true }
+    } catch (error) {
+      this.warn('Semantic dedupe skipped', { error: String(error) })
+      return skipped
+    }
   }
 
   async execute(shortfall: number, pool: readonly Question[], history: readonly QuestionHistoryEntry[]): Promise<Question[]> {
@@ -89,7 +97,9 @@ export class ReplenishQuestionBankUseCase {
       .map((draft) => acceptDraft(draft, topicMap, seen))
       .filter((draft): draft is QuestionDraft => draft !== null)
       .slice(0, shortfall)
-    const { drafts, vectors } = await this.dedupe(await this.screen(accepted, request), pool)
+    const screened = await this.screen(accepted, request)
+    const screenedByDraft = new Map(screened.drafts.map((draft, i) => [draft, screened.screened[i]] as const))
+    const { drafts, vectors, checked } = await this.dedupe(screened.drafts, pool)
     if (!drafts.length) return []
     const verdict = await runBlindReviews(this.deps.reviewers, drafts, request, this.warn)
     const createdAt = (this.deps.now?.() ?? new Date()).toISOString()
@@ -100,6 +110,7 @@ export class ReplenishQuestionBankUseCase {
       topicTitle: topicMap.get(draft.topicId)!.title, basis: draft.basis.trim(), issue: draft.issue ?? '',
       generatorModel: this.deps.author.generatorModel, reviewerModel: verdict.models.join(', '),
       reviewNotes: verdict.notes(index), createdAt,
+      tier: tierOfReview(verdict.passed(index, draft), verdict.models.length >= 2, screenedByDraft.get(draft) ?? false, checked),
     }))
     if (!records.length) return []
     await this.deps.bank.saveGenerated(records)
