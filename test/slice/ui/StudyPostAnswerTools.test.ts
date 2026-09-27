@@ -25,8 +25,8 @@ describe('[Slice / UI] Feature: Explanation retry and concept diagram', () => {
     assert.ok(idle.includes('해설 다시 받기') && idle.includes('개념 도식 보기'))
     const busy = render({ onRegenerateExplanation: () => {}, isExplanationLoading: true, onRequestDiagram: () => {}, isDiagramLoading: true })
     assert.equal(busy.match(/loading-spinner/g)?.length, 2)
-    const done = render({ onRequestDiagram: () => {}, diagram: { mimeType: 'image/png', data: 'AAA', model: 'm', cached: true }, postAnswerError: '실패' })
-    assert.ok(done.includes('src="data:image/png;base64,AAA"') && done.includes('AI 생성 도식') && done.includes('role="alert"'))
+    const done = render({ onRequestDiagram: () => {}, diagram: { kind: 'image', imageUrl: '/api/diagram/1', model: 'm', cached: true }, postAnswerError: '실패' })
+    assert.ok(done.includes('src="/api/diagram/1"') && done.includes('AI 생성 이미지') && done.includes('role="alert"'))
     assert.ok(!done.includes('개념 도식 보기'))
   })
 
@@ -47,7 +47,7 @@ describe('[Slice / UI] Feature: Explanation retry and concept diagram', () => {
   })
 
   it('Given the learner moved on, When a late diagram arrives, Then it is ignored', async () => {
-    const pending = deferred<{ mimeType: string; data: string; model: string; cached: boolean }>()
+    const pending = deferred<DiagramResponseDto>()
     const repo = { getDiagram: () => pending.promise } as unknown as HttpStudyRepositoryContract
     useStudySession.getState().setRepository(repo)
     useStudySession.setState({
@@ -56,7 +56,7 @@ describe('[Slice / UI] Feature: Explanation retry and concept diagram', () => {
     })
     const request = useStudySession.getState().requestDiagram()
     useStudySession.setState({ currentQuestion: question('q2'), feedback: null, diagram: null, isDiagramLoading: false })
-    pending.resolve({ mimeType: 'image/png', data: 'late', model: 'm', cached: false })
+    pending.resolve({ kind: 'image', imageUrl: '/api/diagram/late', model: 'm', cached: false })
     await request
     assert.equal(useStudySession.getState().diagram, null)
   })

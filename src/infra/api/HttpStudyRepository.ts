@@ -1,7 +1,7 @@
 // src/infra/api/HttpStudyRepository.ts
 import ky, { TimeoutError } from 'ky'
 import type { SessionPurpose } from '../../domain/models/PracticeSession.ts'
-import type { PublicQuestionDto, SubmitAnswerResponseDto, ConceptHintResponseDto, DiagramResponseDto } from '../../app/dto/StudyDto.ts'
+import type { PublicQuestionDto, SubmitAnswerResponseDto, ConceptHintResponseDto, DiagramResponseDto, DiagramMode } from '../../app/dto/StudyDto.ts'
 import { createComponentLogger } from '../logger/logger.ts'
 import type {
   HttpStudyRepositoryContract,
@@ -62,8 +62,8 @@ export class HttpStudyRepository implements HttpStudyRepositoryContract {
     return this.post(`/session/${sessionId}/explanation`, { questionId, previousExplanation }, 'regenerate explanation', 60000)
   }
 
-  public getDiagram(sessionId: string, questionId: string): Promise<DiagramResponseDto> {
-    return this.post(`/session/${sessionId}/diagram`, { questionId }, 'fetch diagram', 90000)
+  public getDiagram(sessionId: string, questionId: string, mode: DiagramMode = 'auto'): Promise<DiagramResponseDto> {
+    return this.post(`/session/${sessionId}/diagram`, { questionId, mode }, 'fetch diagram', 120000)
   }
 }
 

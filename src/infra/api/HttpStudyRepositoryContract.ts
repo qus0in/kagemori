@@ -5,6 +5,7 @@ import type {
   SubmitAnswerResponseDto,
   ConceptHintResponseDto,
   DiagramResponseDto,
+  DiagramMode,
 } from '../../app/dto/StudyDto.ts'
 
 export interface SubmitAnswerParams {
@@ -27,5 +28,5 @@ export interface HttpStudyRepositoryContract {
   submitAnswer(sessionId: string, request: SubmitAnswerParams): Promise<SubmitAnswerResponseDto>
   getHint(sessionId: string, questionId: string): Promise<ConceptHintResponseDto>
   regenerateExplanation(sessionId: string, questionId: string, previousExplanation: string): Promise<{ explanation: string }>
-  getDiagram(sessionId: string, questionId: string): Promise<DiagramResponseDto>
+  getDiagram(sessionId: string, questionId: string, mode?: DiagramMode): Promise<DiagramResponseDto>
 }

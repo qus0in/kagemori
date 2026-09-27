@@ -13,7 +13,8 @@ import { GeminiAiAdapter } from '../src/infra/ai/GeminiAiAdapter.ts'
 import { KvAiResponseCache } from '../src/infra/ai/KvAiResponseCache.ts'
 import { StorageUnavailableError } from '../src/domain/models/StorageErrors.ts'
 import type { BlindReviewPort, QuestionAuthoringPort } from '../src/domain/ports/QuestionBankPorts.ts'
-import type { DiagramPort, EmbeddingPort } from '../src/domain/ports/SemanticPorts.ts'
+import type { DiagramRouterPort, EmbeddingPort, ImageDiagramPort, StructuredDiagramPort } from '../src/domain/ports/SemanticPorts.ts'
+import type { R2BucketLike } from '../src/infra/storage/R2DiagramImageStore.ts'
 import type { VectorizeLike } from '../src/infra/vector/VectorizeQuestionIndex.ts'
 import { D1QuestionBank } from '../src/infra/d1/D1QuestionBank.ts'
 
@@ -26,10 +27,13 @@ export type Env = {
   STUDY_REPO?: StudyRepository
   AI_ADAPTER?: AiExplanationPort
   QUESTION_INDEX?: VectorizeLike
+  DIAGRAM_BUCKET?: R2BucketLike
   // Test hooks replacing Gemini/Gemma adapters.
   QUESTION_AUTHOR?: QuestionAuthoringPort & BlindReviewPort
   EMBEDDER?: EmbeddingPort
-  DIAGRAM_PORT?: DiagramPort
+  DIAGRAM_PORT?: ImageDiagramPort
+  DIAGRAM_ROUTERS?: DiagramRouterPort[]
+  STRUCTURED_DIAGRAM?: StructuredDiagramPort
 }
 
 let defaultStudyRepo: InMemoryStudyRepository | null = null

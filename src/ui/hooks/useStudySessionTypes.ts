@@ -4,6 +4,7 @@ import type {
   SubmitAnswerResponseDto,
   ConceptHintResponseDto,
   DiagramResponseDto,
+  DiagramMode,
 } from '../../app/dto/StudyDto.ts'
 import type { HttpStudyRepositoryContract } from '../../infra/api/HttpStudyRepository.ts'
 
@@ -66,7 +67,7 @@ export interface StudySessionActions {
   submitAnswer: () => Promise<void>
   nextQuestion: () => Promise<void>
   regenerateExplanation: () => Promise<void>
-  requestDiagram: () => Promise<void>
+  requestDiagram: (mode?: DiagramMode) => Promise<void>
   resetSession: () => void
 }
 

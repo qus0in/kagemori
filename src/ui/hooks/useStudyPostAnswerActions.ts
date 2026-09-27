@@ -1,5 +1,6 @@
 import type { HttpStudyRepositoryContract } from '../../infra/api/HttpStudyRepository.ts'
 import type { StudySessionState } from './useStudySessionTypes.ts'
+import type { DiagramMode } from '../../app/dto/StudyDto.ts'
 
 type SetFn = (partial: Partial<StudySessionState> | ((s: StudySessionState) => Partial<StudySessionState>)) => void
 type GetFn = () => StudySessionState
@@ -21,13 +22,14 @@ export async function executeRegenerateExplanation(repo: HttpStudyRepositoryCont
   }
 }
 
-export async function executeRequestDiagram(repo: HttpStudyRepositoryContract, set: SetFn, get: GetFn): Promise<void> {
+export async function executeRequestDiagram(repo: HttpStudyRepositoryContract, set: SetFn, get: GetFn, mode: DiagramMode = 'auto'): Promise<void> {
   const { session, currentQuestion, feedback, isDiagramLoading, diagram } = get()
-  if (!session || !currentQuestion || !feedback || isDiagramLoading || diagram) return
+  if (!session || !currentQuestion || !feedback || isDiagramLoading) return
+  if (diagram && (mode === 'auto' || diagram.kind === 'image')) return
   const questionId = currentQuestion.id
   set({ isDiagramLoading: true, postAnswerError: null })
   try {
-    const result = await repo.getDiagram(session.sessionId, questionId)
+    const result = await repo.getDiagram(session.sessionId, questionId, mode)
     if (!stillShowing(get, questionId)) return
     set({ isDiagramLoading: false, diagram: result })
   } catch {

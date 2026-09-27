@@ -50,12 +50,13 @@ describe('[Integration / Infra] Feature: Embedding, Gemma and image model adapte
 
   it('Given an image response, When drawing a diagram, Then requests IMAGE modality and returns inline data', async () => {
     const api = recorder(() => ({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'AAA' } }] } }] }))
-    const image = await new GeminiDiagramAdapter({ apiKey: 'k', fetchFn: api.fetchFn }).generate('도식')
+    const input = { topicTitle: '듀레이션', conceptBody: '듀레이션 정의', questionPrompt: '듀레이션은?', correctOptionText: 'b', explanation: 'x' }
+    const image = await new GeminiDiagramAdapter({ apiKey: 'k', fetchFn: api.fetchFn }).generate(input)
     assert.deepEqual(image, { mimeType: 'image/png', data: 'AAA' })
-    assert.ok(api.calls[0].url.includes('models/gemini-3.1-flash-lite-image:generateContent'))
+    assert.ok(api.calls[0].url.includes('models/gemini-3.1-flash-image:generateContent'))
     assert.deepEqual(api.calls[0].body.generationConfig.responseModalities, ['IMAGE'])
     const empty = recorder(textReply('no image'))
-    await assert.rejects(new GeminiDiagramAdapter({ apiKey: 'k', fetchFn: empty.fetchFn }).generate('도식'))
+    await assert.rejects(new GeminiDiagramAdapter({ apiKey: 'k', fetchFn: empty.fetchFn }).generate(input))
   })
 
   it('Given thought parts or a retry request, When prompting text models, Then drops thoughts and asks for a new angle', async () => {

@@ -46,7 +46,7 @@ export const useStudySession = create<StudySessionState>((set, get) => ({
 
   regenerateExplanation: () => executeRegenerateExplanation(defaultRepo, set, get),
 
-  requestDiagram: () => executeRequestDiagram(defaultRepo, set, get),
+  requestDiagram: (mode) => executeRequestDiagram(defaultRepo, set, get, mode),
 
   resetSession: () => set({ ...initialStudyState }),
 }))

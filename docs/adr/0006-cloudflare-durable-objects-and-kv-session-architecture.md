@@ -47,4 +47,4 @@
 ## 벡터 색인과 도식 캐시 (2026-09-27)
 
 - Vectorize `kagemori-questions`(768차원, cosine)를 `QUESTION_INDEX`로 바인딩한다. 배포 전 인덱스를 만들어야 하며, 바인딩이 없거나 오류가 나면 의미 기반 기능만 건너뛴다.
-- 개념 도식은 `KAGEMORI_KV`의 `diagram:` 키에 문항 버전별로 만료 없이 저장한다. 세션·진도 판단에는 사용하지 않는다.
+- 개념 도식의 구조 결과(Mermaid·표)와 이미지 위치는 `KAGEMORI_KV`의 `diagram:` 키에, 이미지 원본은 R2 `DIAGRAM_BUCKET`(`kagemori-diagrams`)에 만료 없이 저장한다. R2가 없으면 이미지 생성만 중단하고 구조 도식은 제공한다. 세션·진도 판단에는 사용하지 않는다.

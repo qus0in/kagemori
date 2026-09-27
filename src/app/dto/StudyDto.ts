@@ -31,12 +31,18 @@ export interface PublicQuestionDto {
   isAiGenerated?: boolean
 }
 
+export type DiagramMode = 'auto' | 'image'
+
 export interface DiagramResponseDto {
-  mimeType: string
-  /** Base64 image bytes. */
-  data: string
+  kind: 'mermaid' | 'table' | 'image'
   model: string
   cached: boolean
+  /** Router's one-line reason for the chosen representation. */
+  reason?: string
+  code?: string
+  markdown?: string
+  /** Session-scoped URL streaming the image from R2. */
+  imageUrl?: string
 }
 
 export interface SubmitAnswerRequestDto {

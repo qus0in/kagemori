@@ -35,6 +35,12 @@
       "index_name": "kagemori-questions"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "DIAGRAM_BUCKET",
+      "bucket_name": "kagemori-diagrams"
+    }
+  ],
   "kv_namespaces": [
     {
       "binding": "KAGEMORI_KV",

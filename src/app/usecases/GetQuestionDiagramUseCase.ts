@@ -1,54 +1,111 @@
 // src/app/usecases/GetQuestionDiagramUseCase.ts
 import type { Question } from '../../domain/models/Question.ts'
 import type { Concept } from '../../domain/models/Concept.ts'
+import { diagramImageKey, validateStructuredDiagram, type DiagramContent } from '../../domain/models/DiagramContent.ts'
 import type { ConceptRepository, PracticeSessionRepository, QuestionRepository } from '../../domain/ports/StudyPorts.ts'
-import type { DiagramCache, DiagramImage, DiagramPort } from '../../domain/ports/SemanticPorts.ts'
+import type {
+  DiagramCache, DiagramDecision, DiagramImageStore, DiagramInput, DiagramRouterPort, ImageDiagramPort, StoredImage, StructuredDiagramPort,
+} from '../../domain/ports/SemanticPorts.ts'
 import { loadAnsweredQuestion } from './AnsweredQuestionLoader.ts'
 
-export interface DiagramResult extends DiagramImage {
-  readonly model: string
+export type DiagramMode = 'auto' | 'image'
+export class DiagramUnavailableError extends Error {}
+
+export interface DiagramDeps {
+  readonly sessions: PracticeSessionRepository
+  readonly questions: QuestionRepository
+  readonly concepts: ConceptRepository
+  /** Tried in order (gemma-4-26b-a4b-it, then gemini-3.5-flash-lite). */
+  readonly routers: readonly DiagramRouterPort[]
+  readonly structured?: StructuredDiagramPort
+  readonly image?: ImageDiagramPort
+  readonly imageStore?: DiagramImageStore
+  readonly cache?: DiagramCache
+  readonly warn?: (message: string, detail: Record<string, unknown>) => void
+}
+
+export interface DiagramOutcome {
+  readonly content: DiagramContent
   readonly cached: boolean
+  readonly reason?: string
 }
 
-export function buildDiagramPrompt(question: Question, concept: Concept | null): string {
-  const correct = question.options.find((o) => o.id === question.correctOptionId)?.text ?? ''
-  return `투자자산운용사 수험생이 한눈에 복습할 개념 도식 한 장을 그려 주세요.
-주제: ${concept?.title ?? question.topicId}
-핵심 근거: ${(concept?.body ?? question.explanation).slice(0, 1200)}
-정답 포인트: ${correct}
-
-[형식]
-- 흰 배경의 간결한 플랫 인포그래픽. 그래프·비교표·흐름도 중 개념에 가장 알맞은 한 가지만 사용.
-- 한국어 레이블은 짧게(10자 이내), 수식·기호·축 이름은 정확하게, 불필요한 문장·장식·인물·로고 금지.
-- 문제 원문이나 선지 번호를 그대로 옮기지 않기.`
+function toInput(question: Question, concept: Concept | null): DiagramInput {
+  return {
+    topicTitle: concept?.title ?? question.topicId,
+    conceptBody: (concept?.body ?? question.explanation).slice(0, 1500),
+    questionPrompt: question.prompt,
+    correctOptionText: question.options.find((o) => o.id === question.correctOptionId)?.text ?? '',
+    explanation: question.explanation.slice(0, 1500),
+  }
 }
 
-/** Post-answer concept diagram, cached per question version so each image is generated once. */
+/** Post-answer diagram: structured (Mermaid/table) first, image only when judged better or requested. */
 export class GetQuestionDiagramUseCase {
-  private readonly sessions: PracticeSessionRepository
-  private readonly questions: QuestionRepository
-  private readonly concepts: ConceptRepository
-  private readonly diagram: DiagramPort
-  private readonly cache?: DiagramCache
+  private readonly deps: DiagramDeps
+  constructor(deps: DiagramDeps) { this.deps = deps }
 
-  constructor(
-    sessions: PracticeSessionRepository, questions: QuestionRepository, concepts: ConceptRepository,
-    diagram: DiagramPort, cache?: DiagramCache,
-  ) {
-    this.sessions = sessions
-    this.questions = questions
-    this.concepts = concepts
-    this.diagram = diagram
-    this.cache = cache
+  private warn(message: string, error: unknown): void {
+    (this.deps.warn ?? ((m, d) => console.warn(m, d)))(message, { error: String(error) })
   }
 
-  async execute(sessionId: string, questionId: string): Promise<DiagramResult> {
-    const { question, concept } = await loadAnsweredQuestion(this.sessions, this.questions, this.concepts, sessionId, questionId)
-    const key = `diagram:${question.id}:v${question.version}`
-    const cached = await this.cache?.get(key)
-    if (cached) return { ...cached, model: this.diagram.model, cached: true }
-    const image = await this.diagram.generate(buildDiagramPrompt(question, concept))
-    await this.cache?.put(key, image)
-    return { ...image, model: this.diagram.model, cached: false }
+  private load(sessionId: string, questionId: string) {
+    return loadAnsweredQuestion(this.deps.sessions, this.deps.questions, this.deps.concepts, sessionId, questionId)
+  }
+
+  private get canDrawImage(): boolean { return !!this.deps.image && !!this.deps.imageStore }
+
+  private async decide(input: DiagramInput): Promise<DiagramDecision> {
+    for (const router of this.deps.routers) {
+      try { return await router.decide(input) } catch (error) { this.warn(`Diagram router ${router.model} failed`, error) }
+    }
+    return { mode: 'structured', reason: '판정 모델 응답이 없어 구조 도식을 사용' }
+  }
+
+  private async drawStructured(input: DiagramInput): Promise<DiagramContent | null> {
+    if (!this.deps.structured) return null
+    try {
+      const valid = validateStructuredDiagram(await this.deps.structured.draw(input))
+      if (!valid) this.warn('Structured diagram rejected by validation', this.deps.structured.model)
+      return valid && { ...valid, model: this.deps.structured.model }
+    } catch (error) {
+      this.warn('Structured diagram failed', error)
+      return null
+    }
+  }
+
+  private async drawImage(question: Question, input: DiagramInput): Promise<DiagramOutcome> {
+    const { image, imageStore } = this.deps
+    if (!image || !imageStore) throw new DiagramUnavailableError('Image diagrams are not configured')
+    const imageKey = diagramImageKey(image.model, question.id, question.version)
+    const content: DiagramContent = { kind: 'image', model: image.model, imageKey }
+    if (await imageStore.has(imageKey)) return { content, cached: true }
+    await imageStore.put(imageKey, await image.generate(input))
+    return { content, cached: false }
+  }
+
+  async execute(sessionId: string, questionId: string, mode: DiagramMode = 'auto'): Promise<DiagramOutcome> {
+    const { question, concept } = await this.load(sessionId, questionId)
+    const input = toInput(question, concept)
+    if (mode === 'image') return this.drawImage(question, input)
+    const autoKey = `diagram:auto:${question.id}:v${question.version}`
+    const cached = await this.deps.cache?.get(autoKey)
+    if (cached) return { content: cached, cached: true }
+    const decision = await this.decide(input)
+    let outcome: DiagramOutcome | null = null
+    if (decision.mode === 'image' && this.canDrawImage) outcome = await this.drawImage(question, input)
+    const structured = outcome ? null : await this.drawStructured(input)
+    if (structured) outcome = { content: structured, cached: false }
+    if (!outcome && this.canDrawImage) outcome = await this.drawImage(question, input)
+    if (!outcome) throw new DiagramUnavailableError('No diagram model produced a result')
+    await this.deps.cache?.put(autoKey, outcome.content)
+    return { ...outcome, reason: decision.reason }
+  }
+
+  /** Streams a stored image only after the learner has answered the question. */
+  async openImage(sessionId: string, questionId: string): Promise<StoredImage | null> {
+    const { question } = await this.load(sessionId, questionId)
+    if (!this.deps.image || !this.deps.imageStore) return null
+    return this.deps.imageStore.get(diagramImageKey(this.deps.image.model, question.id, question.version))
   }
 }

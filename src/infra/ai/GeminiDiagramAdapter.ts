@@ -1,26 +1,27 @@
 // src/infra/ai/GeminiDiagramAdapter.ts
-import type { DiagramImage, DiagramPort } from '../../domain/ports/SemanticPorts.ts'
+import type { DiagramImage, DiagramInput, ImageDiagramPort } from '../../domain/ports/SemanticPorts.ts'
+import { buildImagePrompt } from './DiagramPrompts.ts'
 import type { GeminiModelOptions } from './GeminiQuestionAuthor.ts'
 import { geminiUrl } from './ModelJson.ts'
 
-/** gemini-3.1-flash-lite-image (Nano Banana 2 Lite): one 4:3 concept diagram at 1K. */
-export class GeminiDiagramAdapter implements DiagramPort {
+/** gemini-3.1-flash-image (Nano Banana 2): one 4:3 concept diagram at 1K; accurate labels matter more than cost. */
+export class GeminiDiagramAdapter implements ImageDiagramPort {
   readonly model: string
   private readonly apiKey: string
   private readonly fetch: typeof fetch
 
   constructor(options: GeminiModelOptions) {
     this.apiKey = options.apiKey
-    this.model = options.model ?? 'gemini-3.1-flash-lite-image'
+    this.model = options.model ?? 'gemini-3.1-flash-image'
     this.fetch = options.fetchFn ?? globalThis.fetch
   }
 
-  async generate(prompt: string): Promise<DiagramImage> {
+  async generate(input: DiagramInput): Promise<DiagramImage> {
     const response = await this.fetch(geminiUrl(this.model, this.apiKey), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts: [{ text: buildImagePrompt(input) }] }],
         generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '4:3' } },
       }),
       signal: AbortSignal.timeout(60_000),
