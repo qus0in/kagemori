@@ -8,7 +8,7 @@
 
 ## 적용 순서
 
-1. 배포 요청 시 최초 1회 `pnpm exec wrangler vectorize create kagemori-questions --dimensions=768 --metric=cosine`로 색인을, `pnpm exec wrangler r2 bucket create kagemori-diagrams`로 도식 버킷을 만들고, `pnpm exec wrangler d1 migrations apply DB --remote`로 0005까지 적용한다. AI 출제는 Gemini 지출 한도가 남아 있어야 동작하며, 실패 시 기존 문항을 반복한다.
+1. 배포 요청 시 최초 1회 `pnpm exec wrangler vectorize create kagemori-questions --dimensions=768 --metric=cosine`로 색인을, `pnpm exec wrangler r2 bucket create kagemori-diagrams`로 도식 버킷을 만들고, `pnpm exec wrangler d1 migrations apply DB --remote`로 0006까지 적용한다. AI 출제는 Gemini 지출 한도가 남아 있어야 동작하며, 실패 시 기존 문항을 반복한다.
 2. `pnpm deploy`로 Worker와 UI를 함께 배포한다. 운영 필수 바인딩은 DO·D1, `STORAGE_MODE=persistent`이다.
 3. 기존 세션은 재조회 시 반영 예약된다. 일괄 반영은 `pnpm history:backfill https://kagemori.qus0in.workers.dev`로 KV 메타데이터에 남은 ID를 조회한다.
 4. 결과의 `missing`은 DO 원본이 없는 세션, `failed`는 재시도 대상이다. KV ID 목록이 만료된 세션은 알고 있는 ID로 재조회해야 한다. 브라우저 저장값이나 KV 답안 복사본으로 원본을 재구성하지 않는다.
