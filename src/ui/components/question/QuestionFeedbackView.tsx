@@ -2,13 +2,14 @@ import type { SubmitAnswerResponseDto } from '../../../app/dto/StudyDto.ts'
 import { DICTIONARY } from '../../constants/dictionary.ts'
 import { QuestionFeedbackSource } from './QuestionFeedbackSource.tsx'
 import { MarkdownView } from '../common/MarkdownView.tsx'
+import { QuestionPostAnswerTools, type QuestionPostAnswerToolsProps } from './QuestionPostAnswerTools.tsx'
 
-export interface QuestionFeedbackViewProps {
+export interface QuestionFeedbackViewProps extends QuestionPostAnswerToolsProps {
   feedback: SubmitAnswerResponseDto
   onNextQuestion: () => void
 }
 
-export function QuestionFeedbackView({ feedback, onNextQuestion }: QuestionFeedbackViewProps) {
+export function QuestionFeedbackView({ feedback, onNextQuestion, ...tools }: QuestionFeedbackViewProps) {
   const dict = DICTIONARY.study.card
   const isCorrect = feedback.isCorrect
   const cardBorder = isCorrect ? 'bg-success/10 border-success/30' : 'bg-error/10 border-error/30'
@@ -35,6 +36,8 @@ export function QuestionFeedbackView({ feedback, onNextQuestion }: QuestionFeedb
           sourceUrl={feedback.sourceUrl}
         />
       </div>
+
+      <QuestionPostAnswerTools {...tools} />
 
       <div className="flex justify-end">
         <button

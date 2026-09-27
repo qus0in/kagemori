@@ -6,7 +6,7 @@ import { D1QuestionBank } from '../../../src/infra/d1/D1QuestionBank.ts'
 import { D1StudyHistory } from '../../../src/infra/d1/D1StudyHistory.ts'
 import { buildGeneratedQuestion } from '../../../src/domain/models/GeneratedQuestion.ts'
 import { SEED_QUESTIONS } from '../../../src/infra/study/SeedStudyData.ts'
-import type { QuestionAuthoringPort } from '../../../src/domain/ports/QuestionBankPorts.ts'
+import type { BlindReviewPort, QuestionAuthoringPort } from '../../../src/domain/ports/QuestionBankPorts.ts'
 import type { PublicQuestionDto, SubmitAnswerResponseDto, ConceptHintResponseDto } from '../../../src/app/dto/StudyDto.ts'
 import { sqliteD1, memoryDOState } from '../../helpers/storageHarness.ts'
 
@@ -25,7 +25,7 @@ describe('[Integration / Infra] Feature: D1 question bank and planned sessions',
   it('Given reviewed records, When saved twice and reloaded, Then round-trips the question once', async () => {
     const { db, sqlite } = sqliteD1()
     const bank = new D1QuestionBank(db)
-    const record = { question: buildGeneratedQuestion(draft, 'gq-topic-2-3-abc'), topicTitle: '투자분석기법', basis: draft.basis,
+    const record = { question: buildGeneratedQuestion(draft, 'gq-topic-2-3-abc'), topicTitle: '투자분석기법', basis: draft.basis, issue: 'PER 계산',
       generatorModel: 'gemini-3.8-flash', reviewerModel: 'gemini-3.8-flash', reviewNotes: '', createdAt: '2026-09-27T00:00:00Z' }
     await bank.save([record]); await bank.save([record])
     assert.deepEqual(await bank.list(), [record])
@@ -47,8 +47,8 @@ describe('[Integration / Infra] Feature: D1 question bank and planned sessions',
     const { db, sqlite } = sqliteD1()
     answerAllSeeds(sqlite)
     const object = new StudySessionDO(memoryDOState().state, { DB: db })
-    const author: QuestionAuthoringPort = {
-      generatorModel: 'gemini-3.8-flash', reviewerModel: 'gemini-3.8-flash',
+    const author: QuestionAuthoringPort & BlindReviewPort = {
+      generatorModel: 'gemini-3.8-flash', model: 'gemini-3.8-flash',
       draft: async () => [draft],
       review: async (items) => items.map((_, index) => ({ index, solvedIndex: 0, approved: true, issues: '' })),
     }

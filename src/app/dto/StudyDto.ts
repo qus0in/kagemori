@@ -31,6 +31,14 @@ export interface PublicQuestionDto {
   isAiGenerated?: boolean
 }
 
+export interface DiagramResponseDto {
+  mimeType: string
+  /** Base64 image bytes. */
+  data: string
+  model: string
+  cached: boolean
+}
+
 export interface SubmitAnswerRequestDto {
   sessionId?: string
   questionId: string

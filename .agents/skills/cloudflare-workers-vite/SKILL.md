@@ -28,5 +28,5 @@ Use this skill when configuring Vite, running local full-stack development, buil
 
 ## Study Storage
 
-- Follow ADR 0006 and `docs/operations/study-storage.md`: DO transactions own session progression, D1 stores global attempt history, KV stores optional session metadata and the `ai:` Gemini response cache only.
+- Follow ADR 0006 and `docs/operations/study-storage.md`: DO transactions own session progression, D1 stores global attempt history, KV stores optional session metadata, the `ai:` Gemini response cache and `diagram:` images only. Vectorize `QUESTION_INDEX` holds question embeddings; code must degrade when it is missing.
 - Validate migration 0003 locally; apply it before an explicitly requested deployment. Never mask persistent storage failures with local state.

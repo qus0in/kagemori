@@ -4,7 +4,7 @@ import { CreateStudySessionUseCase } from '../../../src/app/usecases/CreateStudy
 import { ReplenishQuestionBankUseCase } from '../../../src/app/usecases/ReplenishQuestionBankUseCase.ts'
 import { InMemoryStudyRepository } from '../../../src/infra/study/InMemoryStudyRepository.ts'
 import type { QuestionDraft } from '../../../src/domain/models/GeneratedQuestion.ts'
-import type { QuestionAuthoringPort, QuestionReview, TopicContext } from '../../../src/domain/ports/QuestionBankPorts.ts'
+import type { BlindReviewPort, QuestionAuthoringPort, QuestionReview, TopicContext } from '../../../src/domain/ports/QuestionBankPorts.ts'
 import type { QuestionHistoryEntry } from '../../../src/domain/models/QuestionPlanning.ts'
 import { SEED_QUESTIONS } from '../../../src/infra/study/SeedStudyData.ts'
 
@@ -20,8 +20,8 @@ function draft(n: number, overrides: Partial<QuestionDraft> = {}): QuestionDraft
 
 function author(drafts: QuestionDraft[], reviews?: (drafts: readonly QuestionDraft[]) => QuestionReview[]) {
   const calls = { draft: 0, review: 0, reviewed: [] as (readonly QuestionDraft[])[] }
-  const port: QuestionAuthoringPort = {
-    generatorModel: 'gen', reviewerModel: 'rev',
+  const port: QuestionAuthoringPort & BlindReviewPort = {
+    generatorModel: 'gen', model: 'rev',
     draft: async () => { calls.draft++; return drafts },
     review: async (items) => {
       calls.review++; calls.reviewed.push(items)
@@ -33,10 +33,10 @@ function author(drafts: QuestionDraft[], reviews?: (drafts: readonly QuestionDra
 
 const allAnswered: QuestionHistoryEntry[] = SEED_QUESTIONS.map((q) => ({ questionId: q.id, topicId: q.topicId, isCorrect: true, hintUsed: false, answeredAt: '2026-09-01T00:00:00Z' }))
 
-function setup(port: QuestionAuthoringPort, history: QuestionHistoryEntry[] | Error = allAnswered) {
+function setup(port: QuestionAuthoringPort & BlindReviewPort, history: QuestionHistoryEntry[] | Error = allAnswered) {
   const repo = new InMemoryStudyRepository()
   let n = 0
-  const replenish = new ReplenishQuestionBankUseCase({ bank: repo.questions, topics: { listTopics: async () => [topic] }, author: port, newId: () => `id${++n}` })
+  const replenish = new ReplenishQuestionBankUseCase({ bank: repo.questions, topics: { listTopics: async () => [topic] }, author: port, reviewers: [port], newId: () => `id${++n}` })
   const warnings: string[] = []
   const useCase = new CreateStudySessionUseCase({
     repo, bank: repo.questions, replenish, shuffleSeed: () => 'seed', warn: (message) => warnings.push(message),
@@ -81,7 +81,7 @@ describe('[Slice / App] Feature: Session planning with AI replenishment', () => 
     })
 
     it('Given the author fails, When a session starts, Then falls back to repeating existing questions', async () => {
-      const port: QuestionAuthoringPort = { ...author([]).port, draft: async () => { throw new Error('429 quota') } }
+      const port: QuestionAuthoringPort & BlindReviewPort = { ...author([]).port, draft: async () => { throw new Error('429 quota') } }
       const { useCase, warnings } = setup(port)
       const session = await useCase.execute('DIAGNOSTIC', 6)
       assert.equal(session.questionIds?.length, 6)

@@ -60,3 +60,21 @@ ${items}
 [출력 JSON]
 {"reviews":[{"index":0,"solvedIndex":0,"approved":true,"issues":""}]}`
 }
+
+export function buildScreenPrompt(drafts: readonly QuestionDraft[], request: AuthoringRequest): string {
+  const items = drafts.map((draft, index) => {
+    const topic = request.topics.find((t) => t.id === draft.topicId)
+    return `### index ${index} — ${topic?.title ?? draft.topicId}
+${draft.prompt}
+${draft.options.map((option, i) => `${i}. ${option}`).join('\n')}`
+  }).join('\n\n')
+  return `투자자산운용사 시험 문항 초안을 빠르게 1차 선별하고 태깅하세요. 정답 여부는 판단하지 않습니다.
+
+[제거 기준] 한국어 문장이 아님, 선지 4개가 서로 구별되지 않음, LaTeX 기호($, \\frac 등) 사용, 제시된 세부과목과 무관, 문장이 잘리거나 모호함.
+[태깅] issue: 문항이 묻는 핵심 쟁점을 40자 이내 한 줄로(예: "PER 계산과 EPS 정의").
+
+${items}
+
+반드시 아래 JSON만 출력하세요.
+{"screens":[{"index":0,"keep":true,"issue":"…"}]}`
+}

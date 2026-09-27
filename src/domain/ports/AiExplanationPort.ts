@@ -8,6 +8,8 @@ export interface GenerateExplanationParams {
   isCorrect: boolean
   allOptions?: Array<{ id: string; text: string }>
   questionExplanation?: string
+  /** Explanation the learner asked to replace; the new one must take a different angle. */
+  previousExplanation?: string
 }
 
 export interface AiExplanationPort {

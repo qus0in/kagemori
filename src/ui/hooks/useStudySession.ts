@@ -15,6 +15,7 @@ import {
 } from './useStudyStartHintActions.ts'
 import { executeSubmitAnswer } from './useStudySubmitAction.ts'
 import { executeNextQuestion } from './useStudyNextAction.ts'
+import { executeRegenerateExplanation, executeRequestDiagram } from './useStudyPostAnswerActions.ts'
 
 export type { SessionInfo, StudyScore, StudySessionState }
 
@@ -42,6 +43,10 @@ export const useStudySession = create<StudySessionState>((set, get) => ({
   submitAnswer: () => executeSubmitAnswer(defaultRepo, set, get),
 
   nextQuestion: () => executeNextQuestion(defaultRepo, set, get),
+
+  regenerateExplanation: () => executeRegenerateExplanation(defaultRepo, set, get),
+
+  requestDiagram: () => executeRequestDiagram(defaultRepo, set, get),
 
   resetSession: () => set({ ...initialStudyState }),
 }))

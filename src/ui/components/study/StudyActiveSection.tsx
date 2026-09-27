@@ -48,6 +48,12 @@ export function StudyActiveSection({ store }: StudyActiveSectionProps) {
               isSubmitting={isSubmitting}
               onSubmitAnswer={store.submitAnswer}
               onNextQuestion={store.nextQuestion}
+              onRegenerateExplanation={store.regenerateExplanation}
+              isExplanationLoading={store.isExplanationLoading}
+              onRequestDiagram={store.requestDiagram}
+              isDiagramLoading={store.isDiagramLoading}
+              diagram={store.diagram}
+              postAnswerError={store.postAnswerError}
             />
           </div>
           {isLoadingQuestion && (

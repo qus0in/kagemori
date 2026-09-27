@@ -18,12 +18,15 @@ export interface QuestionDraft {
   readonly explanation: string
   /** Law, theory or formula the question relies on; grounds hints and explanations. */
   readonly basis: string
+  /** Core issue tagged during screening; empty when screening was skipped. */
+  readonly issue?: string
 }
 
 export interface GeneratedQuestionRecord {
   readonly question: Question
   readonly topicTitle: string
   readonly basis: string
+  readonly issue: string
   readonly generatorModel: string
   readonly reviewerModel: string
   readonly reviewNotes: string

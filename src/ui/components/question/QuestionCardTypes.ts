@@ -1,6 +1,7 @@
 import type { PublicQuestionDto, SubmitAnswerResponseDto, ConceptHintResponseDto } from '../../../app/dto/StudyDto.ts'
+import type { QuestionPostAnswerToolsProps } from './QuestionPostAnswerTools.tsx'
 
-export interface QuestionCardProps {
+export interface QuestionCardProps extends QuestionPostAnswerToolsProps {
   question: PublicQuestionDto
   questionNumber: number
   totalQuestions: number

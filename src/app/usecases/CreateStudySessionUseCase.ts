@@ -1,17 +1,20 @@
 // src/app/usecases/CreateStudySessionUseCase.ts
 import type { PracticeSession, SessionPurpose } from '../../domain/models/PracticeSession.ts'
 import { DEFAULT_SESSION_QUESTION_COUNTS } from '../../domain/models/PracticeSessionTypes.ts'
-import { planSessionQuestions, type QuestionHistoryEntry } from '../../domain/models/QuestionPlanning.ts'
+import { needsReview, planSessionQuestions, type QuestionHistoryEntry } from '../../domain/models/QuestionPlanning.ts'
+import type { Question } from '../../domain/models/Question.ts'
 import { isGeneratedQuestionId } from '../../domain/models/GeneratedQuestion.ts'
 import type { StudyRepository } from '../../domain/ports/StudyRepository.ts'
 import type { QuestionBankPort, StudyHistoryPort } from '../../domain/ports/QuestionBankPorts.ts'
 import type { ReplenishQuestionBankUseCase } from './ReplenishQuestionBankUseCase.ts'
+import type { SemanticQuestionService } from './SemanticQuestionService.ts'
 
 export interface CreateStudySessionDeps {
   readonly repo: StudyRepository
   readonly bank: QuestionBankPort
   readonly history?: StudyHistoryPort
   readonly replenish?: ReplenishQuestionBankUseCase
+  readonly semantic?: SemanticQuestionService
   readonly shuffleSeed?: () => string
   readonly warn?: (message: string, detail: Record<string, unknown>) => void
 }
@@ -37,20 +40,32 @@ export class CreateStudySessionUseCase {
     }
   }
 
+  /** IMPROVEMENT only: fresh questions similar to the three latest review questions come first. */
+  private async weakSpotBoost(purpose: SessionPurpose, pool: readonly Question[], history: readonly QuestionHistoryEntry[]) {
+    if (purpose !== 'IMPROVEMENT' || !this.deps.semantic) return undefined
+    const recentReview = history.filter(needsReview).sort((a, b) => b.answeredAt.localeCompare(a.answeredAt)).slice(0, 3)
+    if (!recentReview.length) return undefined
+    const answered = new Set(history.map((entry) => entry.questionId))
+    await this.deps.semantic.ensureIndexed(pool)
+    return this.deps.semantic.relatedTo(recentReview.map((e) => e.questionId), new Set(pool.filter((q) => !answered.has(q.id)).map((q) => q.id)))
+  }
+
   async execute(purpose: SessionPurpose, targetCount?: number): Promise<PracticeSession> {
     const count = targetCount && targetCount > 0 ? Math.min(Math.floor(targetCount), 100) : DEFAULT_SESSION_QUESTION_COUNTS[purpose]
     const seed = this.deps.shuffleSeed?.() ?? crypto.randomUUID()
     const mockExam = purpose === 'MOCK_EXAM'
     let pool = (await this.deps.bank.listQuestions()).filter((q) => !mockExam || !isGeneratedQuestionId(q.id))
     const history = await this.loadHistory()
-    let plan = planSessionQuestions(pool, history, count, seed)
+    let boost = await this.weakSpotBoost(purpose, pool, history)
+    let plan = planSessionQuestions(pool, history, count, seed, boost)
 
     if (!mockExam && this.deps.replenish && plan.freshCount < count) {
       try {
         const added = await this.deps.replenish.execute(count - plan.freshCount, pool, history)
         if (added.length) {
           pool = [...pool, ...added]
-          plan = planSessionQuestions(pool, history, count, seed)
+          boost = await this.weakSpotBoost(purpose, pool, history)
+          plan = planSessionQuestions(pool, history, count, seed, boost)
         }
       } catch (error) {
         this.warn('Question generation failed; repeating existing questions', error)

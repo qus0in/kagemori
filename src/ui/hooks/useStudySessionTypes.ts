@@ -3,6 +3,7 @@ import type {
   PublicQuestionDto,
   SubmitAnswerResponseDto,
   ConceptHintResponseDto,
+  DiagramResponseDto,
 } from '../../app/dto/StudyDto.ts'
 import type { HttpStudyRepositoryContract } from '../../infra/api/HttpStudyRepository.ts'
 
@@ -31,6 +32,11 @@ export interface StudySessionValues {
   score: StudyScore
   error: string | null
   questionStartTime: number
+  isExplanationLoading: boolean
+  diagram: DiagramResponseDto | null
+  isDiagramLoading: boolean
+  /** Explanation/diagram failures; never triggers the question reload button. */
+  postAnswerError: string | null
 }
 
 export const initialStudyState: StudySessionValues = {
@@ -46,6 +52,10 @@ export const initialStudyState: StudySessionValues = {
   score: { correctCount: 0, totalCount: 0 },
   error: null,
   questionStartTime: 0,
+  isExplanationLoading: false,
+  diagram: null,
+  isDiagramLoading: false,
+  postAnswerError: null,
 }
 
 export interface StudySessionActions {
@@ -55,6 +65,8 @@ export interface StudySessionActions {
   requestHint: () => Promise<void>
   submitAnswer: () => Promise<void>
   nextQuestion: () => Promise<void>
+  regenerateExplanation: () => Promise<void>
+  requestDiagram: () => Promise<void>
   resetSession: () => void
 }
 

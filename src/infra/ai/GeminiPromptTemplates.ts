@@ -50,6 +50,9 @@ export function buildExplanationPrompt(
     : ''
   const correctLine = p.correctOptionText ? `\n[실제 정답 선지]: "${p.correctOptionText}"` : ''
   const refExp = p.questionExplanation ? `\n[공식 교재 해설]:\n${p.questionExplanation}` : ''
+  const retry = p.previousExplanation
+    ? `\n\n[재요청]\n수험생이 아래 기존 해설로는 이해가 부족하다며 다시 요청했습니다. 같은 문장·구성을 반복하지 말고 단계별 풀이, 비교표, 반례 중 알맞은 방식으로 더 쉽게 설명하세요.\n[기존 해설]:\n${p.previousExplanation.slice(0, 4000)}`
+    : ''
 
   const instructions = p.isCorrect
     ? `[작성 지침 - 정답 시]
@@ -71,7 +74,7 @@ ${p.questionPrompt}
 [관련 개념]:
 ${p.conceptBody}${refExp}
 
-${instructions}`
+${instructions}${retry}`
 }
 
 export function fallbackHint(conceptBody: string, questionPrompt: string): string {

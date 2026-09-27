@@ -5,7 +5,7 @@ import type { DurableObjectState, SessionStorage } from '../../worker/do/StudySe
 
 export function sqliteD1() {
   const sqlite = new DatabaseSync(':memory:')
-  for (const name of ['0001_create_catalog_schema.sql', '0002_seed_2026_catalog.sql', '0003_study_history.sql', '0004_generated_questions.sql']) {
+  for (const name of ['0001_create_catalog_schema.sql', '0002_seed_2026_catalog.sql', '0003_study_history.sql', '0004_generated_questions.sql', '0005_question_semantics.sql']) {
     sqlite.exec(readFileSync(new URL(`../../migrations/${name}`, import.meta.url), 'utf8'))
   }
   function prepare(sql: string, values: (string | number | null)[] = []) {

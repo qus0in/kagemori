@@ -31,7 +31,9 @@ export async function callGemini(
   if (!response.ok) return null
 
   const data = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>
   }
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null
+  // Thinking models may prepend thought parts; keep only the answer text.
+  const parts = data.candidates?.[0]?.content?.parts ?? []
+  return parts.filter((part) => !part.thought).map((part) => part.text ?? '').join('').trim() || null
 }

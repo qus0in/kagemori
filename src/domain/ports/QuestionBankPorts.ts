@@ -51,8 +51,23 @@ export interface QuestionReview {
 
 export interface QuestionAuthoringPort {
   readonly generatorModel: string
-  readonly reviewerModel: string
   draft(request: AuthoringRequest): Promise<QuestionDraft[]>
-  /** Reviewer solves without the answer key, then judges validity. */
+}
+
+export interface BlindReviewPort {
+  readonly model: string
+  /** Solves without the answer key, then judges validity. */
   review(drafts: readonly QuestionDraft[], request: AuthoringRequest): Promise<QuestionReview[]>
+}
+
+export interface DraftScreening {
+  readonly index: number
+  readonly keep: boolean
+  /** One-line core issue the question tests. */
+  readonly issue: string
+}
+
+export interface DraftScreenPort {
+  readonly model: string
+  screen(drafts: readonly QuestionDraft[], request: AuthoringRequest): Promise<DraftScreening[]>
 }

@@ -47,6 +47,12 @@ export function QuestionCard(p: QuestionCardProps) {
               <QuestionFeedbackView
                 feedback={p.feedback}
                 onNextQuestion={p.onNextQuestion}
+                onRegenerateExplanation={p.onRegenerateExplanation}
+                isExplanationLoading={p.isExplanationLoading}
+                onRequestDiagram={p.onRequestDiagram}
+                isDiagramLoading={p.isDiagramLoading}
+                diagram={p.diagram}
+                postAnswerError={p.postAnswerError}
               />
             )
           )}

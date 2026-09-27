@@ -26,6 +26,8 @@ export async function executeNextQuestion(
       selectedOptionId: null,
       hint: null,
       feedback: null,
+      diagram: null,
+      postAnswerError: null,
       session: { ...session, currentQuestionIndex: nextIndex },
       questionStartTime: Date.now(),
       isLoadingQuestion: false,

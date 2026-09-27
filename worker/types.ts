@@ -12,7 +12,9 @@ import type { CloudflareKvBinding } from '../src/infra/study/KvSessionCache.ts'
 import { GeminiAiAdapter } from '../src/infra/ai/GeminiAiAdapter.ts'
 import { KvAiResponseCache } from '../src/infra/ai/KvAiResponseCache.ts'
 import { StorageUnavailableError } from '../src/domain/models/StorageErrors.ts'
-import type { QuestionAuthoringPort } from '../src/domain/ports/QuestionBankPorts.ts'
+import type { BlindReviewPort, QuestionAuthoringPort } from '../src/domain/ports/QuestionBankPorts.ts'
+import type { DiagramPort, EmbeddingPort } from '../src/domain/ports/SemanticPorts.ts'
+import type { VectorizeLike } from '../src/infra/vector/VectorizeQuestionIndex.ts'
 import { D1QuestionBank } from '../src/infra/d1/D1QuestionBank.ts'
 
 export type Env = {
@@ -23,7 +25,11 @@ export type Env = {
   KAGEMORI_KV?: CloudflareKvBinding
   STUDY_REPO?: StudyRepository
   AI_ADAPTER?: AiExplanationPort
-  QUESTION_AUTHOR?: QuestionAuthoringPort
+  QUESTION_INDEX?: VectorizeLike
+  // Test hooks replacing Gemini/Gemma adapters.
+  QUESTION_AUTHOR?: QuestionAuthoringPort & BlindReviewPort
+  EMBEDDER?: EmbeddingPort
+  DIAGRAM_PORT?: DiagramPort
 }
 
 let defaultStudyRepo: InMemoryStudyRepository | null = null

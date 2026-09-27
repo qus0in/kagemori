@@ -52,6 +52,8 @@ export function planSessionQuestions<Q extends PlannableQuestion>(
   history: readonly QuestionHistoryEntry[],
   count: number,
   shuffleSeed: string,
+  /** Similarity of fresh questions to recent review questions; higher comes first. */
+  freshBoost?: ReadonlyMap<string, number>,
 ): SessionPlan {
   const latest = new Map<string, QuestionHistoryEntry>()
   for (const entry of history) {
@@ -59,7 +61,8 @@ export function planSessionQuestions<Q extends PlannableQuestion>(
     if (!known || known.answeredAt < entry.answeredAt) latest.set(entry.questionId, entry)
   }
   const byOldest = (a: Q, b: Q) => latest.get(a.id)!.answeredAt.localeCompare(latest.get(b.id)!.answeredAt) || a.id.localeCompare(b.id)
-  const fresh = seededShuffle(pool.filter((q) => !latest.has(q.id)), shuffleSeed)
+  const boost = (q: Q) => freshBoost?.get(q.id) ?? 0
+  const fresh = seededShuffle(pool.filter((q) => !latest.has(q.id)), shuffleSeed).sort((a, b) => boost(b) - boost(a))
   const answered = pool.filter((q) => latest.has(q.id))
   const review = answered.filter((q) => needsReview(latest.get(q.id)!)).sort(byOldest)
   const mastered = answered.filter((q) => !needsReview(latest.get(q.id)!)).sort(byOldest)
