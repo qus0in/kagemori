@@ -15,6 +15,8 @@ function memoryKv(failing = false): CloudflareKvBinding & { store: Map<string, s
   }
 }
 
+const approved = JSON.stringify({ reviews: [{ approved: true, issues: '' }] })
+
 function countingFetch(responses: Array<string | null>) {
   let calls = 0
   const fetchFn: typeof fetch = async () => {
@@ -27,10 +29,10 @@ function countingFetch(responses: Array<string | null>) {
 
 describe('[Integration / Infra] Feature: KvAiResponseCache', () => {
   describe('Scenario: Reusing Gemini responses for identical prompts', () => {
-    it('Given a cached hint, When the same hint is requested again, Then Gemini is called only once', async () => {
+    it('Given a cached hint, When the same hint is requested again, Then the generation and review run only once', async () => {
       // Given
       const kv = memoryKv()
-      const api = countingFetch(['AI 힌트'])
+      const api = countingFetch(['AI 힌트', approved])
       const adapter = new GeminiAiAdapter({ apiKey: 'k', fetchFn: api.fetchFn, cache: new KvAiResponseCache(kv) })
 
       // When
@@ -40,37 +42,38 @@ describe('[Integration / Infra] Feature: KvAiResponseCache', () => {
       // Then
       assert.equal(first, 'AI 힌트')
       assert.equal(second, 'AI 힌트')
-      assert.equal(api.calls(), 1)
+      assert.equal(api.calls(), 2)
       assert.equal(kv.store.size, 1)
       assert.ok([...kv.store.keys()][0].startsWith('ai:'))
     })
 
     it('Given a different prompt, When a hint is requested, Then a new cache key calls Gemini again', async () => {
-      const api = countingFetch(['A', 'B'])
+      const api = countingFetch(['A', approved, 'B', approved])
       const adapter = new GeminiAiAdapter({ apiKey: 'k', fetchFn: api.fetchFn, cache: new KvAiResponseCache(memoryKv()) })
 
       assert.equal(await adapter.generateHint('개념', '질문 1'), 'A')
       assert.equal(await adapter.generateHint('개념', '질문 2'), 'B')
-      assert.equal(api.calls(), 2)
+      assert.equal(api.calls(), 4)
     })
   })
 
   describe('Scenario: Failures never poison or block the cache', () => {
     it('Given Gemini fails, When a hint is requested, Then the fallback is returned and not cached', async () => {
       const kv = memoryKv()
-      const api = countingFetch([null, 'AI 힌트'])
+      const api = countingFetch([null, null, 'AI 힌트', approved])
       const adapter = new GeminiAiAdapter({ apiKey: 'k', fetchFn: api.fetchFn, cache: new KvAiResponseCache(kv) })
 
       const fallback = await adapter.generateHint('개념 본문', '질문')
+      assert.equal(kv.store.size, 0)
       const retried = await adapter.generateHint('개념 본문', '질문')
 
       assert.ok(fallback.includes('[학습 힌트]'))
       assert.equal(retried, 'AI 힌트')
-      assert.equal(api.calls(), 2)
+      assert.equal(api.calls(), 4)
     })
 
     it('Given KV is unavailable, When an explanation is requested, Then Gemini output is still returned', async () => {
-      const api = countingFetch(['AI 해설'])
+      const api = countingFetch(['AI 해설', approved])
       const adapter = new GeminiAiAdapter({ apiKey: 'k', fetchFn: api.fetchFn, cache: new KvAiResponseCache(memoryKv(true)) })
 
       const explanation = await adapter.generateExplanation({
@@ -78,7 +81,7 @@ describe('[Integration / Infra] Feature: KvAiResponseCache', () => {
       })
 
       assert.equal(explanation, 'AI 해설')
-      assert.equal(api.calls(), 1)
+      assert.equal(api.calls(), 2)
     })
   })
 })

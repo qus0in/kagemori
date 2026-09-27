@@ -10,6 +10,8 @@ export interface GenerateExplanationParams {
   questionExplanation?: string
   /** Explanation the learner asked to replace; the new one must take a different angle. */
   previousExplanation?: string
+  /** Explicit learner challenge/retry always requires the stronger model. */
+  reviewRequested?: boolean
 }
 
 export interface AiExplanationPort {

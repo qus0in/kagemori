@@ -59,11 +59,14 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
   })
 
   describe('Scenario: Calling Gemini REST API with provided apiKey and custom fetch', () => {
-    it('Given apiKey and default models, When generateExplanation is called, Then invokes gemini-3.8-flash with 2048 tokens and structured prompt', async () => {
+    it('Given apiKey and default models, When generateExplanation is called, Then invokes gemini-3.5-flash-lite with 2048 tokens and structured prompt', async () => {
       let capturedUrl = ''
       let capturedBody: any = null
 
       const mockFetch: typeof fetch = async (input, init) => {
+        if (String(input).includes('gemma-4-26b-a4b-it')) return Response.json({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ reviews: [{ approved: true, issues: '' }] }) }] } }],
+        })
         capturedUrl = input.toString()
         capturedBody = JSON.parse(init?.body?.toString() || '{}')
         return new Response(
@@ -98,7 +101,7 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
       })
 
       assert.equal(explanation, '### 핵심 개념 및 정답 근거\n- 맞습니다.')
-      assert.ok(capturedUrl.includes('gemini-3.8-flash'))
+      assert.ok(capturedUrl.includes('gemini-3.5-flash-lite'))
       assert.equal(capturedBody?.generationConfig?.maxOutputTokens, 2048)
       const promptText = capturedBody?.contents?.[0]?.parts?.[0]?.text || ''
       assert.ok(promptText.includes('[작성 지침 - 정답 시]'))
@@ -110,6 +113,9 @@ describe('[Integration / Infra] Feature: GeminiAiAdapter', () => {
       let capturedBody: any = null
 
       const mockFetch: typeof fetch = async (input, init) => {
+        if (String(input).includes('gemma-4-26b-a4b-it')) return Response.json({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ reviews: [{ approved: true, issues: '' }] }) }] } }],
+        })
         capturedUrl = input.toString()
         capturedBody = JSON.parse(init?.body?.toString() || '{}')
         return new Response(

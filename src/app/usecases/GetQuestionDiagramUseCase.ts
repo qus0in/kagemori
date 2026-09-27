@@ -15,7 +15,7 @@ export interface DiagramDeps {
   readonly sessions: PracticeSessionRepository
   readonly questions: QuestionRepository
   readonly concepts: ConceptRepository
-  /** Tried in order (gemma-4-26b-a4b-it, then gemini-3.5-flash-lite). */
+  /** Tried in order (gemini-3.5-flash-lite, then gemma-4-26b-a4b-it). */
   readonly routers: readonly DiagramRouterPort[]
   readonly structured?: StructuredDiagramPort
   readonly image?: ImageDiagramPort
@@ -88,7 +88,7 @@ export class GetQuestionDiagramUseCase {
     const { question, concept } = await this.load(sessionId, questionId)
     const input = toInput(question, concept)
     if (mode === 'image') return this.drawImage(question, input)
-    const autoKey = `diagram:auto:${question.id}:v${question.version}`
+    const autoKey = `diagram:auto:${this.deps.structured?.model ?? "none"}:${this.deps.image?.model ?? "none"}:${question.id}:v${question.version}`
     const cached = await this.deps.cache?.get(autoKey)
     if (cached) return { content: cached, cached: true }
     const decision = await this.decide(input)

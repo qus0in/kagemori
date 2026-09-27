@@ -55,10 +55,22 @@ describe('[Integration / Infra] Feature: D1 question bank and planned sessions',
     const env = { STORAGE_MODE: 'persistent' as const, DB: db, STUDY_SESSION_DO: { idFromName: (id: string) => id, get: () => object }, QUESTION_AUTHOR: author }
     const post = (path: string, body: unknown) => app.request(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, env)
 
-    const created = await post('/api/study/session', { purpose: 'IMPROVEMENT', targetCount: 1 })
+    const get = (path: string) => app.request(path, undefined, env)
+    const created = await post('/api/study/session', { purpose: 'IMPROVEMENT', targetCount: 3 })
     assert.equal(created.status, 201)
-    const { sessionId } = await created.json() as { sessionId: string }
-    const next = await (await app.request(`/api/study/session/${sessionId}/next`, undefined, env)).json() as PublicQuestionDto
+    const { sessionId, preparingQuestions } = await created.json() as { sessionId: string; preparingQuestions?: number }
+    assert.equal(preparingQuestions, 1)
+    for (let i = 0; i < 2; i++) {
+      const existing = await (await get(`/api/study/session/${sessionId}/next`)).json() as PublicQuestionDto
+      assert.ok(existing.id.startsWith('q-cma-'))
+      await post(`/api/study/session/${sessionId}/submit`, { questionId: existing.id, optionId: existing.options[0].id, hintUsed: false })
+    }
+    const waiting = await get(`/api/study/session/${sessionId}/next`)
+    assert.equal(waiting.status, 202)
+    assert.equal((await waiting.json() as { preparing: boolean }).preparing, true)
+
+    assert.deepEqual(await (await post(`/api/study/session/${sessionId}/prepare`, {})).json(), { status: 'done', added: 1 })
+    const next = await (await get(`/api/study/session/${sessionId}/next`)).json() as PublicQuestionDto
     assert.ok(next.id.startsWith('gq-topic-2-3-'))
     assert.equal(next.isAiGenerated, true)
     assert.equal(sqlite.prepare('SELECT count(*) AS n FROM generated_questions').get()?.n, 1)
@@ -68,6 +80,31 @@ describe('[Integration / Infra] Feature: D1 question bank and planned sessions',
     const correct = next.options.find((option) => option.text === '10배')!
     const result = await (await post(`/api/study/session/${sessionId}/submit`, { questionId: next.id, optionId: correct.id, hintUsed: true })).json() as SubmitAnswerResponseDto
     assert.equal(result.isCorrect, true)
+    assert.equal(result.sessionProgress?.isCompleted, true)
+    sqlite.close()
+  })
+
+  it('Given the learner chooses an existing question while generating, When generation finishes, Then the served slot is never replaced', async () => {
+    const { db, sqlite } = sqliteD1()
+    answerAllSeeds(sqlite)
+    const object = new StudySessionDO(memoryDOState().state, { DB: db })
+    const author: QuestionAuthoringPort & BlindReviewPort = {
+      generatorModel: 'g', model: 'r', draft: async () => [draft],
+      review: async (items) => items.map((_, index) => ({ index, solvedIndex: 0, approved: true, issues: '' })),
+    }
+    const env = { STORAGE_MODE: 'persistent' as const, DB: db, STUDY_SESSION_DO: { idFromName: (id: string) => id, get: () => object }, QUESTION_AUTHOR: author }
+    const post = (path: string, body: unknown) => app.request(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, env)
+    const { sessionId } = await (await post('/api/study/session', { purpose: 'DIAGNOSTIC', targetCount: 3 })).json() as { sessionId: string }
+    for (let i = 0; i < 2; i++) {
+      const q = await (await app.request(`/api/study/session/${sessionId}/next`, undefined, env)).json() as PublicQuestionDto
+      await post(`/api/study/session/${sessionId}/submit`, { questionId: q.id, optionId: q.options[0].id, hintUsed: false })
+    }
+    const fallback = await (await app.request(`/api/study/session/${sessionId}/next?existing=1`, undefined, env)).json() as PublicQuestionDto
+    assert.ok(fallback.id.startsWith('q-cma-'))
+    assert.deepEqual(await (await post(`/api/study/session/${sessionId}/prepare`, {})).json(), { status: 'failed', added: 0 })
+    const again = await (await app.request(`/api/study/session/${sessionId}/next`, undefined, env)).json() as PublicQuestionDto
+    assert.equal(again.id, fallback.id)
+    const result = await (await post(`/api/study/session/${sessionId}/submit`, { questionId: fallback.id, optionId: fallback.options[0].id, hintUsed: false })).json() as SubmitAnswerResponseDto
     assert.equal(result.sessionProgress?.isCompleted, true)
     sqlite.close()
   })

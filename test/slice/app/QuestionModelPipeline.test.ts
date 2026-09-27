@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { CreateStudySessionUseCase } from '../../../src/app/usecases/CreateStudySessionUseCase.ts'
 import { ReplenishQuestionBankUseCase } from '../../../src/app/usecases/ReplenishQuestionBankUseCase.ts'
 import { SemanticQuestionService } from '../../../src/app/usecases/SemanticQuestionService.ts'
+import { PrepareSessionQuestionsUseCase } from '../../../src/app/usecases/PrepareSessionQuestionsUseCase.ts'
+import type { SessionPurpose } from '../../../src/domain/models/PracticeSession.ts'
 import { InMemoryStudyRepository } from '../../../src/infra/study/InMemoryStudyRepository.ts'
 import { InMemoryQuestionIndex } from '../../../src/infra/vector/InMemoryQuestionIndex.ts'
 import type { QuestionDraft } from '../../../src/domain/models/GeneratedQuestion.ts'
@@ -49,10 +51,15 @@ function setup(drafts: QuestionDraft[], opts: { screener?: DraftScreenPort; revi
     bank: repo.questions, topics: { listTopics: async () => [topic] }, author, semantic, warn,
     reviewers: opts.reviewers ?? [approveAll('gemini-3.8-flash')], screener: opts.screener, newId: () => `n${++n}`,
   })
-  const useCase = new CreateStudySessionUseCase({
-    repo, bank: repo.questions, replenish, semantic, shuffleSeed: () => 'seed', warn,
-    history: { latestResults: async () => opts.history ?? answeredSeeds },
-  })
+  const history = { latestResults: async () => opts.history ?? answeredSeeds }
+  const creator = new CreateStudySessionUseCase({ repo, bank: repo.questions, canGenerate: true, semantic, shuffleSeed: () => 'seed', warn, history })
+  const prepare = new PrepareSessionQuestionsUseCase({ sessions: repo.sessions, bank: repo.questions, replenish, history, warn })
+  // Creates the session, then runs the background generation the client would trigger.
+  const useCase = { execute: async (purpose: SessionPurpose, count: number) => {
+    const session = await creator.execute(purpose, count)
+    await prepare.execute(session.sessionId)
+    return (await repo.sessions.findById(session.sessionId))!
+  } }
   const generated = async () => (await repo.questions.listQuestions()).filter((q) => q.id.startsWith('gq-'))
   return { repo, index, useCase, warnings, generated }
 }
@@ -61,7 +68,7 @@ describe('[Slice / App] Feature: Embedding, Gemma and cross-review pipeline', ()
   it('Given the Gemma screener rejects one draft, When replenishing, Then drops it and stores the issue tag', async () => {
     const screener: DraftScreenPort = { model: 'gemma-4-26b-a4b-it', screen: async () => [{ index: 0, keep: false, issue: '' }, { index: 1, keep: true, issue: 'PER 정의' }] }
     const { useCase, generated, repo } = setup([draft(1), draft(2)], { screener })
-    await useCase.execute('DIAGNOSTIC', 2)
+    await useCase.execute('DIAGNOSTIC', 4)
     const [saved] = await generated()
     assert.equal(saved.prompt, '문항 2 #u2')
     assert.equal((await repo.concepts.findById(saved.conceptId))?.body, '근거')
@@ -69,7 +76,7 @@ describe('[Slice / App] Feature: Embedding, Gemma and cross-review pipeline', ()
 
   it('Given a draft semantically equal to another in the batch, When replenishing, Then keeps only the first and indexes it', async () => {
     const { useCase, generated, index } = setup([draft(1, 'same'), draft(2, 'same'), draft(3)])
-    await useCase.execute('DIAGNOSTIC', 3)
+    await useCase.execute('DIAGNOSTIC', 5)
     const prompts = (await generated()).map((q) => q.prompt)
     assert.deepEqual(prompts, ['문항 1 #same', '문항 3 #u3'])
     assert.deepEqual(await index.missing([...SEED_QUESTIONS.map((q) => q.id), ...(await generated()).map((q) => q.id)]), [])
@@ -78,12 +85,12 @@ describe('[Slice / App] Feature: Embedding, Gemma and cross-review pipeline', ()
   it('Given Gemma solves differently, When cross-reviewing, Then rejects the draft; when Gemma is down, Then primary review decides', async () => {
     const disagree: BlindReviewPort = { model: 'gemma-4-31b-it', review: async (items) => items.map((_, index) => ({ index, solvedIndex: 2, approved: true, issues: '다른 답' })) }
     const rejected = setup([draft(1)], { reviewers: [approveAll('gemini-3.8-flash'), disagree] })
-    await rejected.useCase.execute('DIAGNOSTIC', 1)
+    await rejected.useCase.execute('DIAGNOSTIC', 3)
     assert.equal((await rejected.generated()).length, 0)
 
     const down: BlindReviewPort = { model: 'gemma-4-31b-it', review: async () => { throw new Error('timeout') } }
     const degraded = setup([draft(1)], { reviewers: [approveAll('gemini-3.8-flash'), down] })
-    await degraded.useCase.execute('DIAGNOSTIC', 1)
+    await degraded.useCase.execute('DIAGNOSTIC', 3)
     assert.equal((await degraded.generated()).length, 1)
     assert.ok(degraded.warnings.includes('Secondary question reviewer unavailable'))
   })

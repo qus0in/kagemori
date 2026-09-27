@@ -38,7 +38,8 @@ describe('[Slice / App] Feature: GetNextQuestionUseCase', () => {
       const useCase = new GetNextQuestionUseCase({
         findById: async () => { throw new Error('Duplicate session read') }, save: async () => {},
       }, { findById: async () => sampleQuestion, findNextForSession: async () => sampleQuestion })
-      assert.equal((await useCase.executeForSession(session))?.id, sampleQuestion.id)
+      const result = await useCase.executeForSession(session)
+      assert.equal(result.kind === 'question' && result.question.id, sampleQuestion.id)
     })
     it('Given active session, When execute is called, Then returns PublicQuestionDto with correctOptionId omitted', async () => {
       // Given

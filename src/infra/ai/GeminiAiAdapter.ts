@@ -3,8 +3,8 @@ import type {
   AiExplanationPort,
   GenerateExplanationParams,
 } from '../../domain/ports/AiExplanationPort.ts'
-import { callGemini } from './GeminiApiClient.ts'
-import { aiCacheKey, type AiResponseCache } from './KvAiResponseCache.ts'
+import type { AiResponseCache } from './KvAiResponseCache.ts'
+import { PRIMARY_TEXT_MODEL, ReviewedTextClient } from './ReviewedTextClient.ts'
 import {
   buildHintPrompt,
   buildExplanationPrompt,
@@ -12,8 +12,8 @@ import {
   fallbackExplanation,
 } from './GeminiPromptTemplates.ts'
 
-const DEF_HINT_MODEL = 'gemini-3.5-flash-lite'
-const DEF_EXPLANATION_MODEL = 'gemini-3.8-flash'
+const DEF_HINT_MODEL = PRIMARY_TEXT_MODEL
+const DEF_EXPLANATION_MODEL = PRIMARY_TEXT_MODEL
 
 export interface GeminiAiAdapterOptions {
   apiKey?: string
@@ -24,44 +24,20 @@ export interface GeminiAiAdapterOptions {
 }
 
 export class GeminiAiAdapter implements AiExplanationPort {
-  private readonly apiKey?: string
   private readonly hintModel: string
   private readonly explanationModel: string
-  private readonly fetch: typeof fetch
-  private readonly cache?: AiResponseCache
+  private readonly client: ReviewedTextClient
 
   constructor(options: GeminiAiAdapterOptions = {}) {
-    this.apiKey = options.apiKey
     this.hintModel = options.hintModel || DEF_HINT_MODEL
     this.explanationModel = options.explanationModel || DEF_EXPLANATION_MODEL
-    this.fetch = options.fetchFn || globalThis.fetch
-    this.cache = options.cache
-  }
-
-  private async executePrompt(
-    model: string,
-    prompt: string,
-    tokens: number,
-    fallback: string
-  ): Promise<string> {
-    if (!this.apiKey) return fallback
-    try {
-      const key = this.cache ? await aiCacheKey(model, tokens, prompt) : ''
-      const cached = this.cache ? await this.cache.get(key) : null
-      if (cached) return cached
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`
-      const res = await callGemini(this.fetch, url, prompt, tokens)
-      if (!res) return fallback
-      if (this.cache) await this.cache.put(key, res)
-      return res
-    } catch {
-      return fallback
-    }
+    this.client = new ReviewedTextClient(options)
   }
 
   async generateHint(conceptBody: string, questionPrompt: string): Promise<string> {
     const prompt = buildHintPrompt(conceptBody, questionPrompt)
-    return this.executePrompt(this.hintModel, prompt, 500, fallbackHint(conceptBody, questionPrompt))
+    return await this.client.execute({ model: this.hintModel, prompt, tokens: 500 })
+      ?? fallbackHint(conceptBody, questionPrompt)
   }
 
   async generateExplanation(params: GenerateExplanationParams): Promise<string>
@@ -88,11 +64,9 @@ export class GeminiAiAdapter implements AiExplanationPort {
             isCorrect: !!correct,
           }
     const text = buildExplanationPrompt(params)
-    return this.executePrompt(
-      this.explanationModel,
-      text,
-      2048,
-      fallbackExplanation(params)
-    )
+    return await this.client.execute({
+      model: this.explanationModel, prompt: text, tokens: 2048,
+      escalate: params.reviewRequested === true || !!params.previousExplanation?.trim(),
+    }) ?? fallbackExplanation(params)
   }
 }

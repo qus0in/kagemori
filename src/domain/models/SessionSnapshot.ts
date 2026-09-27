@@ -8,6 +8,7 @@ export function sessionSnapshot(session: PracticeSession): PracticeSessionProps 
     currentQuestionIndex: session.currentQuestionIndex, isCompleted: session.isCompleted,
     attempts: [...session.attempts],
     ...(session.questionIds ? { questionIds: [...session.questionIds] } : {}),
+    ...(session.generation ? { generation: { ...session.generation } } : {}),
   }
 }
 export function cloneSession(session: PracticeSession): PracticeSession {

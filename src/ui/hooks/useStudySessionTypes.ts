@@ -38,6 +38,9 @@ export interface StudySessionValues {
   isDiagramLoading: boolean
   /** Explanation/diagram failures; never triggers the question reload button. */
   postAnswerError: string | null
+  /** Next slot is waiting for background AI generation. */
+  preparingNext: { remainingMs: number } | null
+  useExistingRequested: boolean
 }
 
 export const initialStudyState: StudySessionValues = {
@@ -57,6 +60,8 @@ export const initialStudyState: StudySessionValues = {
   diagram: null,
   isDiagramLoading: false,
   postAnswerError: null,
+  preparingNext: null,
+  useExistingRequested: false,
 }
 
 export interface StudySessionActions {
@@ -68,6 +73,7 @@ export interface StudySessionActions {
   nextQuestion: () => Promise<void>
   regenerateExplanation: () => Promise<void>
   requestDiagram: (mode?: DiagramMode) => Promise<void>
+  useExistingQuestion: () => void
   resetSession: () => void
 }
 

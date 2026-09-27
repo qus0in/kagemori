@@ -48,5 +48,7 @@ export const useStudySession = create<StudySessionState>((set, get) => ({
 
   requestDiagram: (mode) => executeRequestDiagram(defaultRepo, set, get, mode),
 
+  useExistingQuestion: () => { if (get().preparingNext) set({ useExistingRequested: true }) },
+
   resetSession: () => set({ ...initialStudyState }),
 }))

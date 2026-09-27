@@ -8,6 +8,7 @@ import type {
 } from './PracticeSessionTypes.ts'
 import { initSessionState, type SessionState } from './PracticeSessionInit.ts'
 import { executeRecordAttempt } from './PracticeSessionRecorder.ts'
+import { replaceableSlots, type GenerationPlan, type GenerationStatus } from './SessionGeneration.ts'
 import {
   countCorrect,
   countFirstTry,
@@ -31,6 +32,7 @@ export class PracticeSession {
   public get targetQuestionCount(): number { return this._state.targetCount }
   public get currentQuestionIndex(): number { return this._state.currentIndex }
   public get questionIds(): readonly string[] | undefined { return this._state.questionIds }
+  public get generation(): GenerationPlan | undefined { return this._state.generation }
   public get attempts(): readonly Attempt[] { return Object.freeze([...this._state.attempts]) }
   public get isCompleted(): boolean { return this._state.isCompleted }
   public get correctCount(): number { return countCorrect(this._state.attempts) }
@@ -43,5 +45,27 @@ export class PracticeSession {
 
   public recordAttempt(input: RecordAttemptInput): Attempt {
     return executeRecordAttempt(this._state, input, this.allowsHint())
+  }
+
+  public setGenerationStatus(status: GenerationStatus): void {
+    if (this._state.generation) this._state.generation = { ...this._state.generation, status }
+  }
+
+  /** Marks a generation slot as served with its fallback so later AI output never replaces it. */
+  public lockGenerationSlot(index: number): void {
+    const plan = this._state.generation
+    if (plan) this._state.generation = { ...plan, lockedIndex: Math.max(plan.lockedIndex, index) }
+  }
+
+  /** Fills unserved, unlocked slots with new questions; returns how many were placed. */
+  public applyGeneratedQuestions(ids: readonly string[]): number {
+    const plan = this._state.generation
+    const planned = this._state.questionIds
+    if (!plan || !planned) return 0
+    const fresh = ids.filter((id) => !planned.includes(id))
+    const slots = replaceableSlots(plan, this._state.attempts.length).slice(0, fresh.length)
+    slots.forEach((slot, i) => { planned[slot] = fresh[i] })
+    this.setGenerationStatus(slots.length ? 'done' : 'failed')
+    return slots.length
   }
 }

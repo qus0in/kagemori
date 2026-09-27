@@ -28,6 +28,7 @@ studyCreateSessionRoute.post('/api/study/session', async (c) => {
     purpose: session.purpose,
     targetQuestionCount: session.targetQuestionCount,
     currentQuestionIndex: session.currentQuestionIndex,
+    ...(session.generation ? { preparingQuestions: session.generation.until - session.generation.from } : {}),
   }
   return c.json(response, 201)
 })

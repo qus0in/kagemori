@@ -1,10 +1,11 @@
 // src/infra/ai/TextDiagramModels.ts
-import type { StructuredDiagram } from '../../domain/models/DiagramContent.ts'
+import { validateStructuredDiagram, type StructuredDiagram } from '../../domain/models/DiagramContent.ts'
 import type { DiagramDecision, DiagramInput, DiagramRouterPort, StructuredDiagramPort } from '../../domain/ports/SemanticPorts.ts'
 import { callGemini } from './GeminiApiClient.ts'
 import { buildRouterPrompt, buildStructuredPrompt } from './DiagramPrompts.ts'
 import type { GeminiModelOptions } from './GeminiQuestionAuthor.ts'
 import { asText, geminiUrl } from './ModelJson.ts'
+import { PRIMARY_TEXT_MODEL, ReviewedTextClient, reviewedTextIdentity } from './ReviewedTextClient.ts'
 
 function parseObject(text: string | null): Record<string, unknown> {
   if (!text) throw new Error('Model returned no content')
@@ -35,20 +36,31 @@ export class ModelDiagramRouter implements DiagramRouterPort {
   }
 }
 
-/** gemini-3.8-flash writes Mermaid or a GFM table; the browser renders it exactly. */
+/** Lite writes diagrams; Gemma reviews, and Flash repairs rejected or invalid drafts. */
 export class GeminiStructuredDiagramAdapter implements StructuredDiagramPort {
   readonly model: string
   private readonly options: GeminiModelOptions
 
   constructor(options: GeminiModelOptions) {
     this.options = options
-    this.model = options.model ?? 'gemini-3.8-flash'
+    this.model = reviewedTextIdentity(options.model ?? PRIMARY_TEXT_MODEL)
   }
 
   async draw(input: DiagramInput): Promise<StructuredDiagram> {
-    const text = await callGemini(this.options.fetchFn ?? globalThis.fetch, geminiUrl(this.model, this.options.apiKey),
-      buildStructuredPrompt(input), 2048, { json: true, temperature: 0.2, timeoutMs: 45_000 })
-    const raw = parseObject(text)
-    return raw.kind === 'table' ? { kind: 'table', markdown: asText(raw.markdown) } : { kind: 'mermaid', code: asText(raw.code) }
+    const parse = (text: string): StructuredDiagram => {
+      const raw = parseObject(text)
+      if (raw.kind !== 'table' && raw.kind !== 'mermaid') throw new Error('Unknown diagram kind')
+      const diagram: StructuredDiagram = raw.kind === 'table'
+        ? { kind: 'table', markdown: asText(raw.markdown) } : { kind: 'mermaid', code: asText(raw.code) }
+      const valid = validateStructuredDiagram(diagram)
+      if (!valid) throw new Error('Invalid structured diagram')
+      return valid
+    }
+    const text = await new ReviewedTextClient(this.options).execute({
+      model: this.options.model ?? PRIMARY_TEXT_MODEL, prompt: buildStructuredPrompt(input), tokens: 2048,
+      json: true, validate: (text) => !!parse(text),
+    })
+    if (!text) throw new Error('No reviewed structured diagram')
+    return parse(text)
   }
 }

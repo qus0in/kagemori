@@ -7,6 +7,7 @@ import { InMemorySessionRepository } from './InMemorySessionRepository.ts'
 import { InMemorySourceRepository } from './InMemorySourceRepository.ts'
 import type { PracticeSessionRepository } from '../../domain/ports/PracticeSessionRepository.ts'
 import { DEFAULT_SESSION_QUESTION_COUNTS } from '../../domain/models/PracticeSessionTypes.ts'
+import type { GenerationPlan } from '../../domain/models/SessionGeneration.ts'
 import type { GeneratedQuestionStore } from '../../domain/ports/QuestionBankPorts.ts'
 import { InMemoryGeneratedQuestionStore } from './InMemoryGeneratedQuestionStore.ts'
 
@@ -30,7 +31,9 @@ export class InMemoryStudyRepository implements StudyRepository {
     this.sources = new InMemorySourceRepository()
   }
 
-  async createSession(purpose: SessionPurpose, targetCount?: number, questionIds?: readonly string[]): Promise<PracticeSession> {
+  async createSession(
+    purpose: SessionPurpose, targetCount?: number, questionIds?: readonly string[], generation?: GenerationPlan,
+  ): Promise<PracticeSession> {
     const count = questionIds?.length || (targetCount && targetCount > 0 ? targetCount : DEFAULT_SESSION_QUESTION_COUNTS[purpose])
     const sessionId = `sess-${Date.now()}-${purpose.toLowerCase()}-${count}-${Math.random().toString(36).substring(2, 7)}`
 
@@ -40,7 +43,7 @@ export class InMemoryStudyRepository implements StudyRepository {
       purpose,
       blueprintId: 'blueprint-round-47',
       targetQuestionCount: count,
-      ...(questionIds?.length ? { questionIds } : {}),
+      ...(questionIds?.length ? { questionIds, ...(generation ? { generation } : {}) } : {}),
     })
 
     await this.sessions.save(session)

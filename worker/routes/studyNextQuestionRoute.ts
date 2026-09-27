@@ -1,7 +1,6 @@
 // worker/routes/studyNextQuestionRoute.ts
 import { Hono } from 'hono'
-import { GetNextQuestionUseCase } from '../../src/app/usecases/GetNextQuestionUseCase.ts'
-import type { PublicQuestionDto } from '../../src/app/dto/StudyDto.ts'
+import { GetNextQuestionUseCase, PREPARING_RETRY_MS } from '../../src/app/usecases/GetNextQuestionUseCase.ts'
 import { type Env, getStudyRepo } from '../types.ts'
 
 export const studyNextQuestionRoute = new Hono<{ Bindings: Env }>()
@@ -16,9 +15,12 @@ studyNextQuestionRoute.get('/api/study/session/:sessionId/next', async (c) => {
   }
 
   const useCase = new GetNextQuestionUseCase(repo.sessions, repo.questions)
-  const publicQuestion: PublicQuestionDto | null = await useCase.executeForSession(session)
+  const result = await useCase.executeForSession(session, c.req.query('existing') === '1')
 
-  if (!publicQuestion) {
+  if (result.kind === 'preparing') {
+    return c.json({ preparing: true, remainingMs: result.remainingMs, retryAfterMs: PREPARING_RETRY_MS }, 202)
+  }
+  if (result.kind === 'completed') {
     return c.json({
       completed: true,
       message: 'All questions in this session have been completed',
@@ -26,9 +28,9 @@ studyNextQuestionRoute.get('/api/study/session/:sessionId/next', async (c) => {
       totalQuestions: session.targetQuestionCount,
     })
   }
-
-  publicQuestion.currentQuestionIndex = session.currentQuestionIndex
-  publicQuestion.totalQuestions = session.targetQuestionCount
-
-  return c.json(publicQuestion)
+  return c.json({
+    ...result.question,
+    currentQuestionIndex: result.session.currentQuestionIndex,
+    totalQuestions: result.session.targetQuestionCount,
+  })
 })

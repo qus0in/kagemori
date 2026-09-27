@@ -54,6 +54,7 @@ describe('[Integration / Infra] Feature: Post-answer explanation retry and conce
     assert.equal((await retry.json() as { explanation: string }).explanation, `새 해설 ${explanations.length}`)
     const last = explanations.at(-1)!
     assert.equal(last.previousExplanation, '이전 해설')
+    assert.equal(last.reviewRequested, true)
     assert.equal(last.selectedOptionText, chosen.text)
 
     const auto = await (await post(`/api/study/session/${sessionId}/diagram`, { questionId: question.id })).json() as DiagramResponseDto
@@ -70,7 +71,7 @@ describe('[Integration / Infra] Feature: Post-answer explanation retry and conce
     assert.equal(bytes.status, 200)
     assert.equal(bytes.headers.get('content-type'), 'image/png')
     assert.equal(await bytes.text(), 'PNGDATA')
-    assert.ok([...kv.store.keys()].some((key) => key.startsWith(`diagram:auto:${question.id}:v`)))
+    assert.ok([...kv.store.keys()].some((key) => key.startsWith('diagram:auto:') && key.includes(`:${question.id}:v`)))
   })
 
   it('Given a missing session or no diagram model, When requesting, Then returns 404 and 503', async () => {

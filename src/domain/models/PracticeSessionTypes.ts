@@ -1,5 +1,6 @@
 // src/domain/models/PracticeSessionTypes.ts
 import type { Attempt } from './Attempt.ts'
+import type { GenerationPlan } from './SessionGeneration.ts'
 
 export type SessionPurpose = 'DIAGNOSTIC' | 'IMPROVEMENT' | 'MOCK_EXAM'
 
@@ -18,6 +19,8 @@ export interface PracticeSessionProps {
   readonly targetQuestionCount: number
   /** Question order fixed at creation; absent for legacy sessions. */
   readonly questionIds?: readonly string[]
+  /** Background AI generation for later slots; absent when not needed. */
+  readonly generation?: GenerationPlan
   readonly attempts?: readonly Attempt[]
   readonly isCompleted?: boolean
 }

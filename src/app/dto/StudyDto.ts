@@ -11,6 +11,8 @@ export interface CreateSessionResponseDto {
   purpose: SessionPurpose
   targetQuestionCount: number
   currentQuestionIndex: number
+  /** Slots filled by background AI generation; the client should call /prepare. */
+  preparingQuestions?: number
 }
 
 export interface QuestionOptionDto {
@@ -30,6 +32,16 @@ export interface PublicQuestionDto {
   /** Drafted and blind-reviewed by AI; not a human-verified question. */
   isAiGenerated?: boolean
 }
+
+/** /next while background generation fills the slot. */
+export interface PreparingQuestionDto {
+  preparing: true
+  remainingMs: number
+  retryAfterMs: number
+}
+
+export const isPreparingQuestion = (value: unknown): value is PreparingQuestionDto =>
+  !!value && typeof value === 'object' && (value as { preparing?: unknown }).preparing === true
 
 export type DiagramMode = 'auto' | 'image'
 

@@ -8,7 +8,7 @@ describe('[Integration / Infra] Feature: HttpStudyRepository using ky', () => {
     it('Given mocked ky responses, When repository methods are called, Then returns expected typed responses', async () => {
       // Mock ky
       const mockKy = {
-        post: (url: string, options?: { json?: unknown }) => {
+        post: (url: string, options?: { json?: unknown; timeout?: number }) => {
           if (url.endsWith('/session')) {
             return {
               json: async () => ({
@@ -20,6 +20,7 @@ describe('[Integration / Infra] Feature: HttpStudyRepository using ky', () => {
             }
           }
           if (url.includes('/submit')) {
+            assert.equal(options?.timeout, 60000)
             return {
               json: async () => ({
                 isCorrect: true,
@@ -37,6 +38,7 @@ describe('[Integration / Infra] Feature: HttpStudyRepository using ky', () => {
             }
           }
           if (url.includes('/hint')) {
+            assert.equal(options?.timeout, 60000)
             return {
               json: async () => ({
                 questionId: 'q-1',

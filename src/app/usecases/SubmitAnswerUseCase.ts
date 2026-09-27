@@ -50,7 +50,8 @@ export class SubmitAnswerUseCase {
     if (previous && (previous.finalAnswerOptionId !== req.optionId || previous.hintUsed !== req.hintUsed)) {
       throw new SessionConflictError()
     }
-    if (!previous) {
+    // Background plan updates (slot locks, AI question swaps) can race a submission; retry on top of them.
+    for (let tries = 0; !previous; tries++) {
       const next = await this.qRepo.findNextForSession(session)
       if (next?.id !== question.id) throw new SessionConflictError()
       session.recordAttempt({
@@ -62,13 +63,16 @@ export class SubmitAnswerUseCase {
         hintUsed: req.hintUsed,
         durationMs: req.durationMs,
       })
-      try { await this.sRepo.save(session) } catch (error) {
+      try { await this.sRepo.save(session); break } catch (error) {
         if (!(error instanceof SessionConflictError)) throw error
         const latest = await this.sRepo.findById(session.sessionId)
         const recorded = latest?.attempts.find((attempt) => attempt.questionId === question.id)
-        if (!latest || recorded?.finalAnswerOptionId !== req.optionId || recorded.hintUsed !== req.hintUsed) throw error
+        if (!latest || (!recorded && tries >= 2)) throw error
         session = latest
+        if (!recorded) continue
+        if (recorded.finalAnswerOptionId !== req.optionId || recorded.hintUsed !== req.hintUsed) throw error
         isCorrect = recorded.isFinalCorrect
+        break
       }
     }
 

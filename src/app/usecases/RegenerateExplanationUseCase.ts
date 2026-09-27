@@ -35,6 +35,7 @@ export class RegenerateExplanationUseCase {
       isCorrect: attempt.isFinalCorrect,
       allOptions: question.options.map((o) => ({ id: o.id, text: o.text })),
       questionExplanation: question.explanation,
+      reviewRequested: true,
       previousExplanation: req.previousExplanation?.trim() || question.explanation,
     })
     return { explanation }

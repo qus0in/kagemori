@@ -2,9 +2,10 @@
 import type { GenerateExplanationParams } from '../../domain/ports/AiExplanationPort.ts'
 
 export function buildHintPrompt(conceptBody: string, questionPrompt: string): string {
-  return `당신은 투자자산운용사 자격시험의 초저지연 학습 튜터입니다.
+  return `당신은 투자자산운용사 자격시험 학습 튜터입니다.
 아래 학습 개념을 바탕으로 문제 풀이에 도움이 되는 핵심 힌트를 1~2문장으로 제공하세요.
-직접적인 정답 번호나 문장을 그대로 누설하지 말고, 정답 판별의 기준 원리를 안내하세요.
+"힌트입니다" 같은 서두·자기소개·인사 없이 힌트 문장만 출력하세요.
+정답이 되는 용어·수치·선지 문장을 직접 쓰지 말고, 스스로 떠올릴 수 있도록 판단 기준이나 확인할 질문만 안내하세요.
 
 [관련 개념]:
 ${conceptBody}
@@ -51,7 +52,7 @@ export function buildExplanationPrompt(
   const correctLine = p.correctOptionText ? `\n[실제 정답 선지]: "${p.correctOptionText}"` : ''
   const refExp = p.questionExplanation ? `\n[공식 교재 해설]:\n${p.questionExplanation}` : ''
   const retry = p.previousExplanation
-    ? `\n\n[재요청]\n수험생이 아래 기존 해설로는 이해가 부족하다며 다시 요청했습니다. 같은 문장·구성을 반복하지 말고 단계별 풀이, 비교표, 반례 중 알맞은 방식으로 더 쉽게 설명하세요.\n[기존 해설]:\n${p.previousExplanation.slice(0, 4000)}`
+    ? `\n\n[재요청]\n수험생이 아래 기존 해설에 문제를 제기하거나 설명을 다시 요청했습니다. 기존 해설을 사실로 전제하지 말고 근거·계산·논리를 재검증하여 오류를 바로잡으세요. 같은 문장·구성을 반복하지 말고 단계별 풀이, 비교표, 반례 중 알맞은 방식으로 더 쉽게 설명하세요.\n[기존 해설]:\n${p.previousExplanation.slice(0, 4000)}`
     : ''
 
   const instructions = p.isCorrect

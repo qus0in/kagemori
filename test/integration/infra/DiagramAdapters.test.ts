@@ -9,11 +9,12 @@ import { R2DiagramImageStore, type R2BucketLike } from '../../../src/infra/stora
 const { QuestionPostAnswerTools } = await import('../../../src/ui/components/question/QuestionPostAnswerTools.tsx')
 const input = { topicTitle: 'CAPM', conceptBody: '체계적 위험만 보상', questionPrompt: 'q', correctOptionText: 'β', explanation: 'e' }
 
-function recorder(text: string) {
+function recorder(text: string, review = false) {
   const calls: { url: string; body: any }[] = []
   const fetchFn: typeof fetch = async (url, init) => {
     calls.push({ url: String(url), body: JSON.parse(String(init?.body)) })
-    return Response.json({ candidates: [{ content: { parts: [{ text }] } }] })
+    return Response.json({ candidates: [{ content: { parts: [{ text: review && String(url).includes('gemma-4-26b-a4b-it')
+      ? JSON.stringify({ reviews: [{ approved: true, issues: '' }] }) : text }] } }] })
   }
   return { fetchFn, calls }
 }
@@ -31,12 +32,12 @@ describe('[Integration / Infra] Feature: Diagram routing, structured drawing and
     await assert.rejects(new ModelDiagramRouter({ apiKey: 'k', model: 'x', fetchFn: recorder('{"mode":"video"}').fetchFn }, true).decide(input))
   })
 
-  it('Given 3.8 Flash output, When drawing structured diagrams, Then maps Mermaid and tables', async () => {
-    const mermaid = recorder(JSON.stringify({ kind: 'mermaid', code: 'flowchart TD\n A-->B' }))
+  it('Given approved Flash Lite output, When drawing structured diagrams, Then maps Mermaid and tables', async () => {
+    const mermaid = recorder(JSON.stringify({ kind: 'mermaid', code: 'flowchart TD\n A-->B' }), true)
     assert.deepEqual(await new GeminiStructuredDiagramAdapter({ apiKey: 'k', fetchFn: mermaid.fetchFn }).draw(input), { kind: 'mermaid', code: 'flowchart TD\n A-->B' })
-    assert.ok(mermaid.calls[0].url.includes('models/gemini-3.8-flash:generateContent'))
+    assert.ok(mermaid.calls[0].url.includes('models/gemini-3.5-flash-lite:generateContent'))
     assert.ok(mermaid.calls[0].body.contents[0].parts[0].text.includes('%%{init} 지시문'))
-    const table = recorder(JSON.stringify({ kind: 'table', markdown: '| a |\n| --- |' }))
+    const table = recorder(JSON.stringify({ kind: 'table', markdown: '| a | b |\n| --- | --- |' }), true)
     assert.equal((await new GeminiStructuredDiagramAdapter({ apiKey: 'k', fetchFn: table.fetchFn }).draw(input)).kind, 'table')
   })
 

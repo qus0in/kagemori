@@ -1,6 +1,7 @@
 // worker/studySessionFactory.ts
 import { CreateStudySessionUseCase } from '../src/app/usecases/CreateStudySessionUseCase.ts'
 import { ReplenishQuestionBankUseCase } from '../src/app/usecases/ReplenishQuestionBankUseCase.ts'
+import { PrepareSessionQuestionsUseCase } from '../src/app/usecases/PrepareSessionQuestionsUseCase.ts'
 import { SemanticQuestionService } from '../src/app/usecases/SemanticQuestionService.ts'
 import type { StudyRepository } from '../src/domain/ports/StudyRepository.ts'
 import type { BlindReviewPort } from '../src/domain/ports/QuestionBankPorts.ts'
@@ -25,26 +26,38 @@ export function getSemanticService(env: Env | undefined): SemanticQuestionServic
   return new SemanticQuestionService(embedder, localIndex ??= new InMemoryQuestionIndex())
 }
 
-/** gemini-3.8-flash drafts and reviews; Gemma screens and cross-reviews when a key is set. */
-export function getSessionCreator(env: Env | undefined, repo: StudyRepository): CreateStudySessionUseCase {
+function getReplenisher(env: Env | undefined, repo: StudyRepository): ReplenishQuestionBankUseCase | undefined {
   const key = env?.GEMINI_API_KEY
   const author = env?.QUESTION_AUTHOR ?? (key ? new GeminiQuestionAuthor({ apiKey: key }) : undefined)
-  const semantic = getSemanticService(env)
-  const reviewers: BlindReviewPort[] = author ? [author] : []
+  if (!author) return undefined
+  const reviewers: BlindReviewPort[] = [author]
   if (key && !env?.QUESTION_AUTHOR) reviewers.push(new GemmaBlindReviewer({ apiKey: key }))
-  const replenish = author && new ReplenishQuestionBankUseCase({
+  return new ReplenishQuestionBankUseCase({
     bank: repo.questions,
     topics: new CatalogTopicContext(new D1CatalogRepository(env?.DB), repo.concepts),
     author,
     reviewers,
     screener: key && !env?.QUESTION_AUTHOR ? new GemmaDraftScreener({ apiKey: key }) : undefined,
-    semantic,
+    semantic: getSemanticService(env),
   })
+}
+
+const historyOf = (env: Env | undefined) => (env?.DB ? new D1StudyHistory(env.DB) : undefined)
+
+/** History-first plan; later slots are generated in the background when AI drafting is configured. */
+export function getSessionCreator(env: Env | undefined, repo: StudyRepository): CreateStudySessionUseCase {
   return new CreateStudySessionUseCase({
     repo,
     bank: repo.questions,
-    history: env?.DB ? new D1StudyHistory(env.DB) : undefined,
-    replenish,
-    semantic,
+    history: historyOf(env),
+    canGenerate: !!(env?.QUESTION_AUTHOR || env?.GEMINI_API_KEY),
+    semantic: getSemanticService(env),
+  })
+}
+
+/** gemini-3.8-flash drafts and reviews; Gemma screens and cross-reviews when a key is set. */
+export function getPrepareUseCase(env: Env | undefined, repo: StudyRepository): PrepareSessionQuestionsUseCase {
+  return new PrepareSessionQuestionsUseCase({
+    sessions: repo.sessions, bank: repo.questions, history: historyOf(env), replenish: getReplenisher(env, repo),
   })
 }

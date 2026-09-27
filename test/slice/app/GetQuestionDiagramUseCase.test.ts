@@ -47,7 +47,8 @@ describe('[Slice / App] Feature: Diagram representation routing', () => {
   it('Given Gemma judges structured, When drawing, Then returns validated Mermaid and caches it without images', async () => {
     const structured = drawer(mermaid)
     const image = painter()
-    const { useCase, sessionId, questionId } = await setup({ routers: [router('structured')], structured, image })
+    const { useCase, sessionId, questionId, cache } = await setup({ routers: [router('structured')], structured, image })
+    cache.map.set(`diagram:auto:${questionId}:v1`, { ...mermaid, model: 'legacy-unreviewed' })
     const first = await useCase.execute(sessionId, questionId)
     assert.deepEqual([first.content.kind, first.cached, first.reason], ['mermaid', false, 'gemma-4-26b-a4b-it 판정'])
     assert.equal((await useCase.execute(sessionId, questionId)).cached, true)

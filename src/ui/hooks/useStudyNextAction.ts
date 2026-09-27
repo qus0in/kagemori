@@ -1,5 +1,6 @@
 import type { HttpStudyRepositoryContract } from '../../infra/api/HttpStudyRepository.ts'
 import type { StudySessionState } from './useStudySessionTypes.ts'
+import { fetchNextWaitingForGeneration } from './useStudyNextFetch.ts'
 
 type SetFn = (partial: Partial<StudySessionState> | ((s: StudySessionState) => Partial<StudySessionState>)) => void
 type GetFn = () => StudySessionState
@@ -14,8 +15,8 @@ export async function executeNextQuestion(
 
   set({ isLoadingQuestion: true, error: null })
   try {
-    const nextQ = await repo.getNextQuestion(session.sessionId)
-    if (get().session !== session) return
+    const nextQ = await fetchNextWaitingForGeneration(repo, set, get, session.sessionId, () => get().session !== session)
+    if (nextQ === undefined || get().session !== session) return
     if (!nextQ) {
       set({ currentQuestion: null, isCompleted: true, isLoadingQuestion: false })
       return
@@ -35,6 +36,6 @@ export async function executeNextQuestion(
   } catch (err) {
     if (get().session !== session) return
     const msg = err instanceof Error ? err.message : '다음 문제를 불러오지 못했습니다.'
-    set({ error: msg, isLoadingQuestion: false })
+    set({ error: msg, isLoadingQuestion: false, preparingNext: null, useExistingRequested: false })
   }
 }

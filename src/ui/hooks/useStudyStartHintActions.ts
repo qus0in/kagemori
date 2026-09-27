@@ -1,6 +1,7 @@
 import type { SessionPurpose } from '../../domain/models/PracticeSession.ts'
 import type { HttpStudyRepositoryContract } from '../../infra/api/HttpStudyRepository.ts'
 import type { StudySessionState } from './useStudySessionTypes.ts'
+import { fetchNextWaitingForGeneration } from './useStudyNextFetch.ts'
 
 type SetFn = (partial: Partial<StudySessionState> | ((s: StudySessionState) => Partial<StudySessionState>)) => void
 type GetFn = () => StudySessionState
@@ -20,13 +21,15 @@ export async function executeStartSession(
     if (get() !== startingState) return
     activeSession = session
     set({ session })
-    const question = await repo.getNextQuestion(session.sessionId)
-    if (get().session !== session) return
+    const question = await fetchNextWaitingForGeneration(repo, set, get, session.sessionId, () => get().session !== session)
+    if (question === undefined || get().session !== session) return
     if (!question) {
       set({ isCompleted: true, isLoadingQuestion: false })
       return
     }
     set({ currentQuestion: question, questionStartTime: Date.now(), isLoadingQuestion: false })
+    // Later slots are drafted while the learner answers the first questions; failures fall back to existing ones.
+    if (session.preparingQuestions) void repo.prepareSession(session.sessionId).catch(() => {})
   } catch (err) {
     if (activeSession ? get().session !== activeSession : get() !== startingState) return
     const msg = err instanceof Error ? err.message : '세션을 생성하는 데 실패했습니다.'

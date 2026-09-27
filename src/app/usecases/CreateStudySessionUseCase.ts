@@ -6,20 +6,25 @@ import type { Question } from '../../domain/models/Question.ts'
 import { isGeneratedQuestionId } from '../../domain/models/GeneratedQuestion.ts'
 import type { StudyRepository } from '../../domain/ports/StudyRepository.ts'
 import type { QuestionBankPort, StudyHistoryPort } from '../../domain/ports/QuestionBankPorts.ts'
-import type { ReplenishQuestionBankUseCase } from './ReplenishQuestionBankUseCase.ts'
+import { FIRST_GENERATED_SLOT, GENERATION_WAIT_MS, type GenerationPlan } from '../../domain/models/SessionGeneration.ts'
 import type { SemanticQuestionService } from './SemanticQuestionService.ts'
 
 export interface CreateStudySessionDeps {
   readonly repo: StudyRepository
   readonly bank: QuestionBankPort
   readonly history?: StudyHistoryPort
-  readonly replenish?: ReplenishQuestionBankUseCase
+  /** True when AI drafting is configured; later slots are then generated in the background. */
+  readonly canGenerate?: boolean
+  readonly now?: () => number
   readonly semantic?: SemanticQuestionService
   readonly shuffleSeed?: () => string
   readonly warn?: (message: string, detail: Record<string, unknown>) => void
 }
 
-/** Fixes the session's question order at creation so /next and submit agree on it. */
+/**
+ * Fixes the question order at creation without waiting for AI: slots 1–2 are always existing
+ * questions; short banks mark later slots for background generation with fallbacks in place.
+ */
 export class CreateStudySessionUseCase {
   private readonly deps: CreateStudySessionDeps
   constructor(deps: CreateStudySessionDeps) { this.deps = deps }
@@ -54,23 +59,14 @@ export class CreateStudySessionUseCase {
     const count = targetCount && targetCount > 0 ? Math.min(Math.floor(targetCount), 100) : DEFAULT_SESSION_QUESTION_COUNTS[purpose]
     const seed = this.deps.shuffleSeed?.() ?? crypto.randomUUID()
     const mockExam = purpose === 'MOCK_EXAM'
-    let pool = (await this.deps.bank.listQuestions()).filter((q) => !mockExam || !isGeneratedQuestionId(q.id))
+    const pool = (await this.deps.bank.listQuestions()).filter((q) => !mockExam || !isGeneratedQuestionId(q.id))
     const history = await this.loadHistory()
-    let boost = await this.weakSpotBoost(purpose, pool, history)
-    let plan = planSessionQuestions(pool, history, count, seed, boost)
-
-    if (!mockExam && this.deps.replenish && plan.freshCount < count) {
-      try {
-        const added = await this.deps.replenish.execute(count - plan.freshCount, pool, history)
-        if (added.length) {
-          pool = [...pool, ...added]
-          boost = await this.weakSpotBoost(purpose, pool, history)
-          plan = planSessionQuestions(pool, history, count, seed, boost)
-        }
-      } catch (error) {
-        this.warn('Question generation failed; repeating existing questions', error)
-      }
-    }
-    return this.deps.repo.createSession(purpose, count, plan.questionIds.length ? plan.questionIds : undefined)
+    const boost = await this.weakSpotBoost(purpose, pool, history)
+    const plan = planSessionQuestions(pool, history, count, seed, boost)
+    const from = Math.max(FIRST_GENERATED_SLOT, plan.freshCount)
+    const generation: GenerationPlan | undefined = !mockExam && this.deps.canGenerate && from < plan.questionIds.length
+      ? { status: 'pending', from, until: plan.questionIds.length, deadline: new Date((this.deps.now?.() ?? Date.now()) + GENERATION_WAIT_MS).toISOString(), lockedIndex: -1 }
+      : undefined
+    return this.deps.repo.createSession(purpose, count, plan.questionIds.length ? plan.questionIds : undefined, generation)
   }
 }

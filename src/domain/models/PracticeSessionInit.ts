@@ -2,6 +2,7 @@
 import type { Attempt } from './Attempt.ts'
 import type { PracticeSessionProps } from './PracticeSessionTypes.ts'
 import { validatePracticeSessionProps } from './PracticeSessionValidation.ts'
+import type { GenerationPlan } from './SessionGeneration.ts'
 
 export interface SessionState {
   sessionId: string
@@ -10,7 +11,8 @@ export interface SessionState {
   blueprintId: string
   currentIndex: number
   targetCount: number
-  questionIds?: readonly string[]
+  questionIds?: string[]
+  generation?: GenerationPlan
   attempts: Attempt[]
   isCompleted: boolean
 }
@@ -26,6 +28,7 @@ export function initSessionState(p: PracticeSessionProps): SessionState {
     currentIndex: p.currentQuestionIndex ?? 0,
     targetCount: p.targetQuestionCount,
     questionIds: p.questionIds ? [...p.questionIds] : undefined,
+    generation: p.generation ? { ...p.generation } : undefined,
     attempts,
     isCompleted: p.isCompleted ?? (attempts.length >= p.targetQuestionCount),
   }

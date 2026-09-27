@@ -4,7 +4,8 @@ import { cosineSimilarity, questionEmbeddingText } from '../../domain/models/Vec
 import type { EmbeddingPort, QuestionVector, QuestionVectorIndex } from '../../domain/ports/SemanticPorts.ts'
 
 export const DUPLICATE_THRESHOLD = 0.9
-export const RELATED_THRESHOLD = 0.75
+// gemini-embedding-2 scores unrelated finance sentences around 0.75 and paraphrases above 0.9.
+export const RELATED_THRESHOLD = 0.82
 const BATCH = 50
 
 export interface EmbeddableText {

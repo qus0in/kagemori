@@ -10,12 +10,13 @@ import type { Env } from './types.ts'
 
 let localImages: InMemoryDiagramImageStore | null = null
 
-/** Gemma 26B → Flash-Lite judge; 3.8 Flash writes Mermaid/tables; Nano Banana 2 images go to R2. */
+/** Flash-Lite → Gemma 26B judge; Lite writes Mermaid/tables with Gemma review and Flash escalation; Nano Banana 2 images go to R2. */
 export function getDiagramUseCase(env: Env | undefined, repo: StudyRepository): GetQuestionDiagramUseCase {
   const apiKey = env?.GEMINI_API_KEY
   const routers = env?.DIAGRAM_ROUTERS ?? (apiKey ? [
-    new ModelDiagramRouter({ apiKey, model: 'gemma-4-26b-a4b-it' }, false),
+    // Flash-Lite answers in ~1s; Gemma 26B (~10s) is the fallback judge.
     new ModelDiagramRouter({ apiKey, model: 'gemini-3.5-flash-lite' }, true),
+    new ModelDiagramRouter({ apiKey, model: 'gemma-4-26b-a4b-it' }, false),
   ] : [])
   const imageStore = env?.DIAGRAM_BUCKET
     ? new R2DiagramImageStore(env.DIAGRAM_BUCKET)

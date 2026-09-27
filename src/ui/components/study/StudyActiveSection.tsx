@@ -58,9 +58,20 @@ export function StudyActiveSection({ store }: StudyActiveSectionProps) {
           </div>
           {isLoadingQuestion && (
             <div className="absolute inset-0 z-10 flex justify-center rounded-box bg-base-100/30 cursor-wait">
-              <div role="status" className="sticky top-1/3 self-start mt-24 flex items-center gap-2 rounded-full bg-base-100 border border-base-300 px-4 py-2 shadow-md">
-                <span className="loading loading-spinner loading-sm text-primary"></span>
-                <span className="text-sm text-base-content/80">다음 문제를 불러오는 중이에요…</span>
+              <div role="status" className="sticky top-1/3 self-start mt-24 flex flex-col items-center gap-2 rounded-2xl bg-base-100 border border-base-300 px-4 py-3 shadow-md cursor-default">
+                <div className="flex items-center gap-2">
+                  <span className="loading loading-spinner loading-sm text-primary"></span>
+                  <span className="text-sm text-base-content/80">
+                    {store.preparingNext
+                      ? `AI가 새 문제를 만들고 검수하는 중이에요 · 최대 약 ${Math.ceil(store.preparingNext.remainingMs / 1000)}초`
+                      : '다음 문제를 불러오는 중이에요…'}
+                  </span>
+                </div>
+                {store.preparingNext && (
+                  <button type="button" className="btn btn-outline btn-xs" onClick={store.useExistingQuestion} disabled={store.useExistingRequested}>
+                    기존 문제로 바로 풀기
+                  </button>
+                )}
               </div>
             </div>
           )}

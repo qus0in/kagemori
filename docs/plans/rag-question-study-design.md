@@ -56,7 +56,7 @@
   - 프로덕션: **Cloudflare Vectorize** (에지 네이티브 인덱스, 768차원, Cosine)
   - 로컬/테스트 대역: **`@orama/orama`** (TypeScript/JavaScript 생태계의 표준 경량 임베디드 벡터 및 하이브리드 검색 라이브러리). Clean Architecture `VectorSearchPort`로 추상화하여 로컬 Vite 개발 및 Vitest/Node 테스트에서도 외부 의존성 없이 동일한 코사인 유사도 검색과 필터링을 검증한다.
 - **Worker:** AI Studio API 키를 secret으로 사용하여 Gemini API를 직접 호출.
-  - 실시간 세션 서빙: 초저지연·비용 최적화 모델인 `gemini-3.5-flash-lite` 적용
+  - 실시간 세션 서빙: 힌트·일반 해설·구조 도식은 `gemini-3.5-flash-lite` 작성 → Gemma 26B 품질 검토 → 미달/실패 시 `gemini-3.8-flash` 보정. 사용자 해설 재요청·출제·1차 검수는 3.8 직행(ADR 0003).
   - 심층 추론/검증: 1M 컨텍스트와 사고 능력을 갖춘 `Gemini 3.8 Flash` 적용
   - 시각 자료 생성: `gemini-3.1-flash-lite-image`(Nano Banana 2 Lite) 적용
   - 요청 제한, 비용 상한, 시간 초과, 응답 스키마 검증, 정답 비공개를 Worker에서 통제한다.

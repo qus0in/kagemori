@@ -1,7 +1,7 @@
 // src/infra/api/HttpStudyRepository.ts
 import ky, { TimeoutError } from 'ky'
 import type { SessionPurpose } from '../../domain/models/PracticeSession.ts'
-import type { PublicQuestionDto, SubmitAnswerResponseDto, ConceptHintResponseDto, DiagramResponseDto, DiagramMode } from '../../app/dto/StudyDto.ts'
+import type { PublicQuestionDto, SubmitAnswerResponseDto, ConceptHintResponseDto, DiagramResponseDto, DiagramMode, PreparingQuestionDto } from '../../app/dto/StudyDto.ts'
 import { createComponentLogger } from '../logger/logger.ts'
 import type {
   HttpStudyRepositoryContract,
@@ -33,13 +33,14 @@ export class HttpStudyRepository implements HttpStudyRepositoryContract {
     return this.post('/session', { purpose, targetCount }, 'create session', 200000)
   }
 
-  public async getNextQuestion(sessionId: string): Promise<PublicQuestionDto | null> {
+  public async getNextQuestion(sessionId: string, useExisting = false): Promise<PublicQuestionDto | PreparingQuestionDto | null> {
     try {
       const res = await this.http.get(`${this.url}/session/${sessionId}/next`, {
+        searchParams: useExisting ? { existing: '1' } : undefined,
         timeout: 10000,
         totalTimeout: 22000,
         retry: { limit: 1, methods: ['get'], retryOnTimeout: true },
-      }).json<PublicQuestionDto | { completed: true }>()
+      }).json<PublicQuestionDto | PreparingQuestionDto | { completed: true }>()
       return 'completed' in res ? null : res
     } catch (err) {
       this.log.error({ err, sessionId }, 'Failed to fetch next question')
@@ -51,11 +52,16 @@ export class HttpStudyRepository implements HttpStudyRepositoryContract {
   }
 
   public submitAnswer(sessionId: string, req: SubmitAnswerParams): Promise<SubmitAnswerResponseDto> {
-    return this.post(`/session/${sessionId}/submit`, req, 'submit answer')
+    return this.post(`/session/${sessionId}/submit`, req, 'submit answer', 60000)
   }
 
   public getHint(sessionId: string, questionId: string): Promise<ConceptHintResponseDto> {
-    return this.post(`/session/${sessionId}/hint`, { questionId }, 'fetch hint')
+    return this.post(`/session/${sessionId}/hint`, { questionId }, 'fetch hint', 60000)
+  }
+
+  public prepareSession(sessionId: string): Promise<{ status: string; added: number }> {
+    // Background AI drafting and review can take about a minute.
+    return this.post(`/session/${sessionId}/prepare`, {}, 'prepare questions', 180000)
   }
 
   public regenerateExplanation(sessionId: string, questionId: string, previousExplanation: string): Promise<{ explanation: string }> {
